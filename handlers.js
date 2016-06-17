@@ -1,4 +1,5 @@
-var request = require('request');
+var request     = require('request');
+var config      = require('./config')
 
 const ALL_TAG = '__ALL__';
 
