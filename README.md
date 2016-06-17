@@ -34,31 +34,32 @@ docker run -v data_volume:/data -p 64321:64321 -d davidp3/cayley:0.4.1-trunk
 ```
 See [cayley-docker](https://github.com/davidp3/cayley-docker) for more info.
 2. Next, if you are running on a platform other than Linux, the backing Cayley
-instance will not be found at localhost so you must do this before running
-Cayley-server:
-```sh
-CAYLEY_INT_SERVER_IP=<my_internal_docker_ip>
-```
-`<my_internal_docker_ip>` can be obtained by running `docker-machine` after
+instance will not be found at localhost so you need to find the URL, which
+can be obtained by running `docker-machine` after
 starting `cayley-docker`:
 ```sh
 docker-machine ls | awk '{print $5}'
 ```
-It will probably be `192.168.99.100`.  On Linux, you can leave the default of
+It will probably be `192.168.99.100`.  On Linux, you can use the default of
 `localhost`.
 3. Finally, launch cayley-server:
 ```sh
-docker run -d -v data_volume:/data -p 62686:62686 davidp3/cayley-server:0.4.1-trunk
+docker run -d -v data_volume:/data -p 62686:62686 -e CAYLEY_INT_SERVER_IP=<my_internal_docker_ip> davidp3/cayley-server:0.4.1-trunk
 ```
+Again, on a Linux host, you can omit the
+`-e CAYLEY_INT_SERVER_IP=<my_internal_docker_ip>` part.
 
 ## Configuration
 
-You should definitely set:
+You should definitely set these environment vars using `-e` switches to
+the `docker run` command:
 
-1. `CAYLEY_USERNAME=myusername` is the (only) name you can log in with.
+1. `CAYLEY_USERNAME=myusername` is the (only) name you can log in with.  The
+default is `admin`.
 2. `CAYLEY_BCRYPT_PASSWD=my_bcrypted_password` must be the hash of the password you
-log in with.  I haven't found a decent way to generate this without using the
-js function used in this package.  There are working Python and Perl solutions
+log in with.  The default is a hash of `password`.
+I haven't found a decent way to generate the hash` without using the
+javascript function used in this package.  There are working Python and Perl solutions
 [here](http://unix.stackexchange.com/questions/52108/how-to-create-sha512-password-hashes-on-command-line)...
 they all kind of suck.
 
@@ -68,15 +69,12 @@ To enable Let's Encrypt, you must set three environment variables:
 2. `LEX_DOMAIN=com.mydomain` must match the name of the domain you are running on/securing.
 3. `LEX_EMAIL=com.whatever.me` should be your email address.
 
-Finally, you will likely want to change `handlers.unauth` as described above.
+Finally, you will likely want to change the code in `handlers.unauth` for your
+use case as described above.
 
 ## Docker
 
-To run the Docker image from Docker Hub:
-```sh
-docker run -d -v data_volume:/data -p 62686:62686 -p 64321:64321 docker.io/davidp3/cayley-server:0.4.1-trunk
-```
-To build the Docker image locally:
+To build the Docker image locally for hackin':
 ```sh
 docker build -t davidp3/cayley-server:0.4.1-trunk .
 ```
