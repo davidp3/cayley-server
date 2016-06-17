@@ -28,6 +28,8 @@ RUN \
 RUN \
   npm install node-gyp spdy express request letsencrypt-express body-parser morgan jsonwebtoken bcrypt
 
+ENV CAYLEY_INT_SERVER_IP 192.168.99.100
+
 CMD \
   cd cayley-server && \
   node server.js
