@@ -124,3 +124,5 @@ if (config.lex) {
     "Set $LEX to enable Let's Encrypt.  See config.js for more.");
   app.listen(config.port);
 }
+
+console.log("The backing Cayley instance must be running at http://" + config.internal_url + ':' + config.internal_port);

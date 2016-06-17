@@ -76,7 +76,13 @@ module.exports = {
         "http://" + config.internal_url + ':' + config.internal_port + req.url,
         req.headers['content-type'] === 'application/json' ? { json: req.body } : { body: req.body },
         function (cerror, cresponse, cbody) {
-          res.status(cresponse.statusCode).send(cbody);
+          if (!cresponse) {
+            console.log("Failed to contact Cayley instance.  Error: " + cbody);
+          }
+          if (cresponse && cresponse.statusCode !== 200) {
+            console.log("Cayley returned error: " + cbody);
+          }
+          res.status(cresponse ? cresponse.statusCode : 404).send(cbody);
         }
       );
     }

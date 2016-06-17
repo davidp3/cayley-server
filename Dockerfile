@@ -1,9 +1,11 @@
 #
-# Dockerfile that builds Cayley-server for Ubuntu x64.
-# Cayley-server maintains an internal Cayley server and a node.js
-# server that provides authenticated access to it.
-#
 # https://github.com/davidp3/cayley-server
+#
+# Builds Cayley-server for Ubuntu x64.
+# Cayley-server maintains an internal Cayley instance and a node.js
+# server that provides authenticated access to it.
+# The internal instance must also be started.  See
+# https://github.com/davidp3/cayley-docker
 #
 
 FROM ubuntu
@@ -28,10 +30,6 @@ RUN \
 RUN \
   npm install node-gyp spdy express request letsencrypt-express body-parser morgan jsonwebtoken bcrypt
 
-ENV CAYLEY_INT_SERVER_IP 192.168.99.100
-
 CMD \
   cd cayley-server && \
   node server.js
-
-EXPOSE 62686

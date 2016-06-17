@@ -24,6 +24,33 @@ For use with Cayley, you will need to customize the `unauth` handler
 to suit your needs but you will probably not need to change
 the `auth` handler, which allows any Cayley operation to be run.
 
+## Usage
+
+1. First, you need to launch the backing Cayley instance (and create the
+persistent docker volume if not already done):
+```sh
+docker volume create --name data_volume
+docker run -v data_volume:/data -p 64321:64321 -d davidp3/cayley:0.4.1-trunk
+```
+See [cayley-docker](https://github.com/davidp3/cayley-docker) for more info.
+2. Next, if you are running on a platform other than Linux, the backing Cayley
+instance will not be found at localhost so you must do this before running
+Cayley-server:
+```sh
+CAYLEY_INT_SERVER_IP=<my_internal_docker_ip>
+```
+`<my_internal_docker_ip>` can be obtained by running `docker-machine` after
+starting `cayley-docker`:
+```sh
+docker-machine ls | awk '{print $5}'
+```
+It will probably be `192.168.99.100`.  On Linux, you can leave the default of
+`localhost`.
+3. Finally, launch cayley-server:
+```sh
+docker run -d -v data_volume:/data -p 62686:62686 davidp3/cayley-server:0.4.1-trunk
+```
+
 ## Configuration
 
 You should definitely set:
@@ -46,9 +73,10 @@ Finally, you will likely want to change `handlers.unauth` as described above.
 ## Docker
 
 To run the Docker image from Docker Hub:
-
-    docker run -d -v data_volume:/data -p 62686:62686 -p 64321:64321 docker.io/davidp3/cayley-server:0.4.1-trunk
-
+```sh
+docker run -d -v data_volume:/data -p 62686:62686 -p 64321:64321 docker.io/davidp3/cayley-server:0.4.1-trunk
+```
 To build the Docker image locally:
-
-    docker build -t davidp3/cayley-server:0.4.1-trunk .
+```sh
+docker build -t davidp3/cayley-server:0.4.1-trunk .
+```
