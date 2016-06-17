@@ -6,7 +6,7 @@
 # https://github.com/davidp3/cayley-server
 #
 
-FROM davidp3/cayley:0.4.1-trunk
+FROM ubuntu
 
 MAINTAINER David Parks davidp99@gmail.com
 

@@ -72,7 +72,7 @@ module.exports = {
 
       // Forward the request to Cayley.
       request.post(
-        'http://localhost:64321' + req.url,
+        config.internal_url + ':' + config.internal_port + req.url,
         req.headers['content-type'] === 'application/json' ? { json: req.body } : { body: req.body },
         function (cerror, cresponse, cbody) {
           res.status(cresponse.statusCode).send(cbody);

@@ -15,7 +15,8 @@ module.exports = {
   // The port we run on.
   'port'            : process.env.CAYLEY_EXT_SERVER_PORT ? parseInt(process.env.CAYLEY_EXT_SERVER_PORT) : 62686,
 
-  // The port that Cayley's HTTP API runs on.
+  // The IP/port that Cayley's HTTP API runs on.
+  'internal_url'             : process.env.CAYLEY_INT_SERVER_IP || "localhost",
   'internal_port'            : process.env.CAYLEY_INT_SERVER_PORT ? parseInt(process.env.CAYLEY_INT_SERVER_PORT) : 64321,
 
   // Duration for which the login token is valid.

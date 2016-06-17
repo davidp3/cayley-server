@@ -102,7 +102,6 @@ if (config.lex) {
   var lex = LEX.create({
     configDir: require('os').homedir() + '/letsencrypt/etc',
     approveRegistration: function (hostname, approve) { // leave `null` to disable automatic registration
-      console.log("hostname = " + hostname);
       if (hostname === config.lex_domain) { // Or check a database or list of allowed domains
         approve(null, {
           domains: [config.lex_domain]
