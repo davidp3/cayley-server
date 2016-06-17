@@ -1,30 +1,44 @@
 var express     = require('express');
+var LEX         = require('letsencrypt-express');
 var app         = express();
 var bcrypt      = require('bcrypt')
 var bodyParser  = require('body-parser');
 var morgan      = require('morgan');
 var jwt         = require('jsonwebtoken');
 var config      = require('./config');
+var handlers    = require('./handlers');
 
-var port = config.port;
 app.set('secret', config.secret);
 
 app.use(bodyParser.urlencoded({ extended: false }));
 app.use(bodyParser.json());
+app.use(bodyParser.text());
 
 app.use(morgan('dev'));
 
-app.listen(port);
-console.log('Magic happens at http://localhost:' + port);
+app.use(function(req, res, next) {
+  // Look for token in url parameters or post parameters.
+  // If none is found then run the unauth path.
+  var token = req.body.token || req.query.token || req.headers['x-access-token'];
+  if (!token) {
+    req.url = "/unauth" + req.url;
+    next();
+    return;
+  }
 
-// Unauthenticated route : GET http://localhost:62686/
-app.get('/', function(req, res) {
-  // TODO: Fill in with unauthorized access behavior.
-  res.json({ message: 'Unauthenticated request!' });
+  req.url = "/auth" + req.url;
+  next();
+});
+
+// Unauthenticated routes
+// e.g. GET or POST https://localhost:62686/
+app.all('/unauth/*', function(req, res) {
+  req.url = req.url.substring(7);   // chop off '/unauth'
+  handlers.unauth(req, res);
 });
 
 // Authenticate User
-// POST http://localhost:62686/auth
+// e.g. POST https://localhost:62686/auth
 app.post('/auth', function(req, res) {
   // Confirm hashed password
   var username = req.body.name;
@@ -57,7 +71,6 @@ app.post('/auth', function(req, res) {
 app.use(function(req, res, next) {
   // Look for token in url parameters or post parameters.
   var token = req.body.token || req.query.token || req.headers['x-access-token'];
-
   if (!token) {
     return res.status(403).send({
         success: false,
@@ -75,8 +88,40 @@ app.use(function(req, res, next) {
   });
 });
 
-// Authenticated route : GET http://localhost:62686/
-app.get('/su', function(req, res) {
-  // TODO: Fill in with authorized access behavior.
-  res.json({ message: 'Run authenticated command!' });
+// Authenticated route
+// e.g. GET or POST https://localhost:62686/
+app.all('/auth/*', function(req, res) {
+  req.url = req.url.substring(5);   // chop off '/auth'
+  handlers.auth(req, res);
 });
+
+if (config.lex) {
+  console.log("Configuring SSL");
+
+  // Maintain SSL certs with Lets Encrypt.
+  var lex = LEX.create({
+    configDir: require('os').homedir() + '/letsencrypt/etc',
+    approveRegistration: function (hostname, approve) { // leave `null` to disable automatic registration
+      console.log("hostname = " + hostname);
+      if (hostname === config.lex_domain) { // Or check a database or list of allowed domains
+        approve(null, {
+          domains: [config.lex_domain]
+        , email: config.lex_email
+        , agreeTos: true
+        });
+      }
+    }
+  });
+
+  lex.onRequest = app;
+
+  lex.listen([] /* unsecured ports */, [config.port] /* secured ports */, function () {
+    var protocol = ('requestCert' in this) ? 'https': 'http';
+    console.log("Listening at " + protocol + '://localhost:' + this.address().port);
+  });
+} else {
+  console.log('Server launched at http://localhost:' + config.port);
+  console.log("WARNING: SSL is NOT enabled!  This is only appropriate for testing.\n" +
+    "Set $LEX to enable Let's Encrypt.  See config.js for more.");
+  app.listen(config.port);
+}

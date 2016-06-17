@@ -10,5 +10,45 @@ queries that can be run.  For example, you can permit simple one-hop
 read queries (i.e. queries that go from one user-supplied vertex to
 another along a graph edge) in unauthenticated requests and any
 HTTP operation (including database writes) for authenticated users.
+As authentication is highly insecure without SSL, we allow Let's
+Encrypt to optionally secure the server.
 
 The Cayley web interface is not exposed by this server.
+
+The handlers are defined in handlers.js.  By changing
+`handlers.auth` and `handlers.unauth`, this server can be used for
+any purpose and will maintain Let's Encrypt configuration as well as
+authentication behavior.
+
+For use with Cayley, you will need to customize the `unauth` handler
+to suit your needs but you will probably not need to change
+the `auth` handler, which allows any Cayley operation to be run.
+
+## Configuration
+
+You should definitely set:
+
+1. `CAYLEY_USERNAME=myusername` is the (only) name you can log in with.
+2. `CAYLEY_BCRYPT_PASSWD=my_bcrypted_password` must be the hash of the password you
+log in with.  I haven't found a decent way to generate this without using the
+js function used in this package.  There are working Python and Perl solutions
+[here](http://unix.stackexchange.com/questions/52108/how-to-create-sha512-password-hashes-on-command-line)...
+they all kind of suck.
+
+To enable Let's Encrypt, you must set three environment variables:
+
+1. `LEX=1` to turn on Let's Encrypt
+2. `LEX_DOMAIN=com.mydomain` must match the name of the domain you are running on/securing.
+3. `LEX_EMAIL=com.whatever.me` should be your email address.
+
+Finally, you will likely want to change `handlers.unauth` as described above.
+
+## Docker
+
+To run the Docker image from Docker Hub:
+
+    docker run -d -v data_volume:/data -p 62686:62686 -p 64321:64321 docker.io/davidp3/cayley-server:0.4.1-trunk
+
+To build the Docker image locally:
+
+    docker build -t davidp3/cayley-server:0.4.1-trunk .

@@ -17,20 +17,19 @@ RUN \
   apt-get install -y git
 
 RUN \
-  apt-get install -y nodejs
+  apt-get install -y nodejs-legacy
 
 RUN \
   apt-get install -y npm
 
 RUN \
-  git clone https://github.com/davidp3/cayley-server.git && \
-  cd cayley-server && \
-  npm install express body-parser morgan jsonwebtoken
+  git clone https://github.com/davidp3/cayley-server.git
+
+RUN \
+  npm install node-gyp spdy express request letsencrypt-express body-parser morgan jsonwebtoken bcrypt
 
 CMD \
+  cd cayley-server && \
   node server.js
 
 EXPOSE 62686
-
-I have a feeling that this should FROM the cayley-docker image, close that guys open port and allow you to connect to it locally only.
-How?
