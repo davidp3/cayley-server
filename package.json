@@ -1,0 +1,11 @@
+{
+  "name": "cayley-server",
+  "main": "server.js",
+  "dependencies": {
+    "bcrypt": "^0.8.7",
+    "body-parser": "^1.15.1",
+    "express": "^4.14.0",
+    "jsonwebtoken": "^7.0.1",
+    "morgan": "^1.7.0"
+  }
+}
