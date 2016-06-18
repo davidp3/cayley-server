@@ -112,6 +112,7 @@ body {
         .attr("markerWidth", 6)
         .attr("markerHeight", 6)
         .attr("orient", "auto")
+        .attr("opacity", 0.5)
         .append("svg:path")
         .attr("d", "M0,-5L10,0L0,5");
 
@@ -140,6 +141,9 @@ body {
           	.style("visibility", "hidden")
             .text("");
 
+        var update_edge_label = function() {
+          edge_label.style("top", (d3.event.pageY-18)+"px").style("left",(d3.event.pageX-20)+"px");
+        }
 
         link.append("line")
             .attr("class", "link")
@@ -148,8 +152,8 @@ body {
             .attr("x2", function(d) { return d.target.x; })
             .attr("y2", function(d) { return d.target.y; })
             .attr("marker-end", "url(#end)")
-            .on("mouseover", function(d){ return edge_label.style("visibility", "visible").text(d.pred);} )
-          	.on("mousemove", function(){ return edge_label.style("top", (d3.event.pageY-18)+"px").style("left",(d3.event.pageX-20)+"px"); });
+            .on("mouseover", function(d) { update_edge_label(); edge_label.style("visibility", "visible").text(d.pred); } )
+          	.on("mousemove", function() { update_edge_label(); });
 
         var node = svg.selectAll(".node")
             .data(graph.nodes)
@@ -163,7 +167,7 @@ body {
             .attr("y", -12)
             .attr("width", 24)
             .attr("height", 24)
-            .style({"opacity" : "0.5"});
+            .style({"opacity" : "0.2"});
 
         node.append("text")
             .attr("dx", 12)
