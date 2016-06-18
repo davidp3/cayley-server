@@ -6,18 +6,50 @@
   pointer-events: none;
   font: 14px sans-serif;
   font-weight: bold;
-  color: #222;
-  opacity: 0.65;
+  color: #aaa;
+  opacity: 0.55;
 }
 
 .link {
   stroke: #000;
   stroke-opacity: .25;
-  font: 18px sans-serif;
-  font-weight: bold;
-  font-style: italic;
   color: #22c;
   opacity: 0.8;
+}
+
+.d3-tip text {
+  font: 18px sans-serif;
+  font-weight: bold;
+}
+
+.d3-tip {
+  opacity: 0.9;
+  font: 20px sans-serif;
+  line-height: 1;
+  padding: 24px;
+  background: rgba(0, 0, 0, 0.5);
+  color: #fff;
+  border-radius: 2px;
+  pointer-events: none;
+}
+
+/* Creates a small triangle extender for the tooltip */
+.d3-tip:after {
+  box-sizing: border-box;
+  display: inline;
+  font-size: 20px;
+  width: 100%;
+  line-height: 1;
+  color: rgba(0, 0, 0, 0.5);
+  content: "\25BC";
+  position: absolute;
+  text-align: center;
+}
+
+.d3-tip.f:after {
+  margin: -1px 0 0 0;
+  top: 100%;
+  left: 0;
 }
 
 .message {
@@ -26,7 +58,7 @@
 
 body {
   font: 400 14px/21px "Open Sans", "Helvetica Neue", Helvetica, Arial, sans-serif;
-  background-color:#F4F4F4
+  background-color:#F8F8F8
 }
 
 </style>
@@ -46,6 +78,9 @@ body {
     </div>
 
   <script src="https://d3js.org/d3.v3.min.js" charset="utf-8"></script>
+  <!-- From https://github.com/Caged/d3-tip/tree/07cf158c54cf1686b3000d784ef55d27b095cc0e:
+   The license is MIT. -->
+  <script type="text/javascript" src="d3-tip.js"></script>
   <script>
 
   const width = 1280,
@@ -56,7 +91,7 @@ body {
   // in a format that D3's force layout can understand.
   // BEWARE: New-lines are lost when writing strings like this so remember, at least,
   // to use old C-style comments only, as well as statement-ending semi-colons.
-  const fetch_graph =
+  const FETCH_GRAPH =
     "var verts = g.V().ToArray(); \
       var verts = verts.map(function(o) { return { 'name' : o } }); \
       var edges = []; \
@@ -102,6 +137,7 @@ body {
         .attr("width", width)
         .attr("height", height);
 
+    // arrow head
     svg.append("defs").selectAll("marker")
         .data(["end"])      // Different link/path types can be defined here
         .enter().append("marker")    // This section adds in the arrows
@@ -116,9 +152,28 @@ body {
         .append("svg:path")
         .attr("d", "M0,-5L10,0L0,5");
 
+    // edge labels
+    var tip = d3.tip()
+        .attr('class', 'd3-tip')
+        .offset([-64,-24])
+        .direction('f', function() { return { top: d3.event.pageY-18, left: d3.event.pageX-20 }})
+        .html(function(d) {
+          return "<span style='color:#7f7'>" + d.source.name +
+                  "</span> <strong><span style='color:#6df'>" + d.pred +
+                  "</span> </strong><span style='color:#fae'>" +
+                  d.target.name + "</span>";
+        });
+
+    // pointer events on tooltips were causing mouseouts on my edges!
+    var style = tip.show_style();
+    style['pointer-events'] = 'none';
+    tip.show_style(style);
+
+    svg.call(tip);
+
     d3.json(QUERY_PATH)
       .header('x-access-token', token)
-      .post(fetch_graph, function(error, graph) {
+      .post(FETCH_GRAPH, function(error, graph) {
         if (error) throw error;
 
         // It's wrapping the response in a 1-element array for some reason
@@ -133,17 +188,28 @@ body {
             .data(graph.links)
             .enter().append("g");
 
-        var edge_label = d3.select("body")
-            .append("div")
+        // Keep track of how many timeouts are waiting to dismiss tool tip.
+        // Last one done turns out the lights.
+        var nWaiters = 0;
+        link.append("line")
             .attr("class", "link")
-            .style("position", "absolute")
-          	.style("z-index", "10")
-          	.style("visibility", "hidden")
-            .text("");
-
-        var update_edge_label = function() {
-          edge_label.style("top", (d3.event.pageY-18)+"px").style("left",(d3.event.pageX-20)+"px");
-        }
+            .attr("x1", function(d) { return d.source.x; })
+            .attr("y1", function(d) { return d.source.y; })
+            .attr("x2", function(d) { return d.target.x; })
+            .attr("y2", function(d) { return d.target.y; })
+            .attr("stroke-width", "16px")
+            .style("opacity", 0)   // its the only way
+            .on('mouseover', function(d) {
+              tip.offset([-64,20-tip.getNodeEl().node().offsetWidth/2]);
+              tip.show(d);
+            })
+            .on('mousemove', function(d) {
+              tip.show(d);      // update position
+            })
+            .on('mouseout', function(d) {
+              nWaiters++;
+              setTimeout(function() { nWaiters--; if (!nWaiters) tip.hide(d); }, 1000);
+            });
 
         link.append("line")
             .attr("class", "link")
@@ -152,8 +218,9 @@ body {
             .attr("x2", function(d) { return d.target.x; })
             .attr("y2", function(d) { return d.target.y; })
             .attr("marker-end", "url(#end)")
-            .on("mouseover", function(d) { update_edge_label(); edge_label.style("visibility", "visible").text(d.pred); } )
-          	.on("mousemove", function() { update_edge_label(); });
+            .attr("stroke", "#22c")
+            .attr("stroke-width", "1px");
+
 
         var node = svg.selectAll(".node")
             .data(graph.nodes)
@@ -167,7 +234,7 @@ body {
             .attr("y", -12)
             .attr("width", 24)
             .attr("height", 24)
-            .style({"opacity" : "0.2"});
+            .style({"opacity" : "0.55"});
 
         node.append("text")
             .attr("dx", 12)
@@ -180,10 +247,6 @@ body {
               .attr("y1", function(d) { return d.source.y + 10 * direction(delta(d.source, d.target)).y; })
               .attr("x2", function(d) { return d.target.x - 10 * direction(delta(d.source, d.target)).x; })
               .attr("y2", function(d) { return d.target.y - 10 * direction(delta(d.source, d.target)).y; });
-
-          svg.selectAll('text.link')
-            .attr('x', function(d) { return (d.source.x + d.target.x)/2.0 ; })
-            .attr('y', function(d) { return (d.source.y + d.target.y)/2.0 });
 
           node.attr("transform",
               function(d) { return "translate(" + d.x + "," + d.y + ")"; });

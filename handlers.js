@@ -18,8 +18,9 @@ module.exports = {
       }
 
       // lame
-      if (req.url === '/question.ico') {
-        res.sendFile('question.ico', { root: __dirname });
+      const files = [ 'question.ico', 'd3-tip.js' ];
+      if (files.indexOf(req.url.substring(1)) != -1) {
+        res.sendFile(req.url.substring(1), { root: __dirname });
         return;
       }
 

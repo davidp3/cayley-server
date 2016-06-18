@@ -21,7 +21,7 @@ RUN \
   npm install node-gyp spdy express request letsencrypt-express body-parser morgan jsonwebtoken bcrypt
 
 RUN \
-  git clone https://github.com/davidp3/cayley-server.git
+  git clone https://github.com/davidp3/cayley-server.git && echo e
 
 CMD \
   cd cayley-server && \
