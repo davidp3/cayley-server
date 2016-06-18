@@ -1,8 +1,60 @@
 <!DOCTYPE html>
 <meta charset="utf-8">
+
 <style>
 
-.node text {
+html, body {
+  height: 100%;
+  margin: 0;
+
+  min-width: 100%;
+  width: 100%;
+  max-width: 100%;
+
+  min-height: 100%;
+  height: 100%;
+  max-height: 100%;
+
+  display: flex;
+  flex-direction: column;
+}
+
+body {
+  font: 400 14px/21px "Open Sans", "Helvetica Neue", Helvetica, Arial, sans-serif;
+  background-color:#F8F8FF
+}
+
+.header {
+  margin: 16px 16px 4px 16px;
+  background: rgba(180, 180, 255, 0.25);
+  padding: 16px;
+  display: flex;
+  border-radius: 16px;
+  flex-direction: row;
+}
+
+.message {
+  width: 50%;
+  flex: 1;
+}
+
+.pform {
+  width: 50%;
+  flex: 1;
+}
+
+.graph {
+  width: 100%;
+  flex: 1;
+}
+
+.svg-graph {
+  width: 100%;
+  height: 100%;
+  flex: none;
+}
+
+.nodetext {
   pointer-events: none;
   font: 14px sans-serif;
   font-weight: bold;
@@ -22,14 +74,26 @@
   font-weight: bold;
 }
 
+.subject {
+  color:#7f7;
+}
+
+.predicate {
+  color:#6df;
+  font-weight: bold;
+}
+
+.dobject {
+  color:#fae;
+}
+
 .d3-tip {
   opacity: 0.9;
   font: 20px sans-serif;
   line-height: 1;
   padding: 24px;
   background: rgba(0, 0, 0, 0.5);
-  color: #fff;
-  border-radius: 2px;
+  border-radius: 8px;
   pointer-events: none;
 }
 
@@ -52,90 +116,98 @@
   left: 0;
 }
 
-.message {
-  text-align: center;
-}
-
-body {
-  font: 400 14px/21px "Open Sans", "Helvetica Neue", Helvetica, Arial, sans-serif;
-  background-color:#F8F8F8
-}
-
 </style>
+
 <body>
 
-    <div>
-      <p class="message">
-        Mouseover an edge to see the relationship type.</br>
-        Drag vertices to rearrange the graph.</br>
-      </p></p>
-      <form>
+    <div class="header">
+      <form class="pform">
         Username: <input type="text" maxlength="32" id="username"/><p>
         Password: <input type="password" maxlength="32" id="pass"/><p>
         <input type="button" value="Login" onclick="login();"/>
       </form>
-
+      <ul class="message">
+        <li>Mouseover an edge to see the relationship type.</li>
+        <li>Drag vertices to rearrange the graph.</li>
+        <li>Click/drag the background to pan/zoom around the graph.</li>
+      </ul>
     </div>
 
-  <script src="https://d3js.org/d3.v3.min.js" charset="utf-8"></script>
-  <!-- From https://github.com/Caged/d3-tip/tree/07cf158c54cf1686b3000d784ef55d27b095cc0e:
-   The license is MIT. -->
-  <script type="text/javascript" src="d3-tip.js"></script>
-  <script>
+    <div class="graph"/>
 
-  const width = 1280,
-        height = 820,
-        QUERY_PATH = 'api/v1/query/gremlin';
+    <script src="https://d3js.org/d3.v3.min.js" charset="utf-8"></script>
+    <!-- From https://github.com/Caged/d3-tip/tree/07cf158c54cf1686b3000d784ef55d27b095cc0e:
+     The license is MIT. -->
+    <script type="text/javascript" src="d3-tip.js"></script>
+    <script>
 
-  // This GremlinJS script will query the entire database AND return it
-  // in a format that D3's force layout can understand.
-  // BEWARE: New-lines are lost when writing strings like this so remember, at least,
-  // to use old C-style comments only, as well as statement-ending semi-colons.
-  const FETCH_GRAPH =
-    "var verts = g.V().ToArray(); \
-      var verts = verts.map(function(o) { return { 'name' : o } }); \
-      var edges = []; \
-      var vertIdxMap = {}; \
-      for (var i=0; i<verts.length; i++) { \
-        vertIdxMap[verts[i].name] = i; \
-      } \
-      for (var i=0; i<verts.length; i++) { \
-        var vert = verts[i];  \
-        /* If there are no outgoing edges then result will be null. */ \
-        var new_edges = []; \
-        g.V(vert.name).Out(null,'pred') \
-          .Map(function(o) {  \
-            new_edges.push( { 'source' : i, 'target' : vertIdxMap[o.id], 'pred' : o.pred } )  \
-          }); \
-        if (new_edges) { \
-          edges = edges.concat(new_edges);  \
+    const QUERY_PATH = 'api/v1/query/gremlin';
+
+    // This GremlinJS script will query the entire database AND return it
+    // in a format that D3's force layout can understand.
+    // BEWARE: New-lines are lost when writing strings like this so remember, at least,
+    // to use old C-style comments only, as well as statement-ending semi-colons.
+    const FETCH_GRAPH =
+      "var verts = g.V().ToArray(); \
+        var verts = verts.map(function(o) { return { 'name' : o } }); \
+        var edges = []; \
+        var vertIdxMap = {}; \
+        for (var i=0; i<verts.length; i++) { \
+          vertIdxMap[verts[i].name] = i; \
         } \
-      } \
-      g.Emit({ 'nodes' : verts, 'links' : edges })";
+        for (var i=0; i<verts.length; i++) { \
+          var vert = verts[i];  \
+          /* If there are no outgoing edges then result will be null. */ \
+          var new_edges = []; \
+          g.V(vert.name).Out(null,'pred') \
+            .Map(function(o) {  \
+              new_edges.push( { 'source' : i, 'target' : vertIdxMap[o.id], 'pred' : o.pred } )  \
+            }); \
+          if (new_edges) { \
+            edges = edges.concat(new_edges);  \
+          } \
+        } \
+        g.Emit({ 'nodes' : verts, 'links' : edges })";
 
-  var token = '';
+    var token = '';
 
-  var direction = function(p) {
-    return { x: p.x/Math.sqrt(p.x*p.x + p.y*p.y), y: p.y/Math.sqrt(p.x*p.x + p.y*p.y) };
-  };
+    var direction = function(p) {
+      return { x: p.x/Math.sqrt(p.x*p.x + p.y*p.y), y: p.y/Math.sqrt(p.x*p.x + p.y*p.y) };
+    };
 
-  var delta = function(p1,p2) {
-    return { x: p2.x-p1.x, y: p2.y-p1.y };
-  };
-
-  var draw = function() {
-    var color = d3.scale.category20();
+    var delta = function(p1,p2) {
+      return { x: p2.x-p1.x, y: p2.y-p1.y };
+    };
 
     var force = d3.layout.force()
         .charge(-300)
         .linkDistance(200)
         .linkStrength(0.1)
-        .gravity(0.05)
-        .size([width, height]);
+        .gravity(0.05);
 
-    var svg = d3.select("body").append("svg")
-        .attr("width", width)
-        .attr("height", height);
+    // edge labels
+    var tip = d3.tip()
+        .attr('class', 'd3-tip')
+        .offset([-64,-24])
+        .direction('f', function() { return { top: d3.event.pageY-18, left: d3.event.pageX-20 }})
+        .html(function(d) {
+          return "<span class='subject'>" + d.source.name +
+                  "</span> <span class='predicate'>" + d.pred +
+                  "</span> <span class='dobject'>" +
+                  d.target.name + "</span>";
+        });
+
+    // pan-zoom
+    var zoom = d3.behavior.zoom()
+        .scaleExtent([0.3, 2.5])
+        .on("zoom", zoomed);
+
+    var svg = d3.select(".graph")
+        .append("svg")
+        .attr("class", "svg-graph")
+        .call(zoom)
+        .call(tip)
+        .append("g");
 
     // arrow head
     svg.append("defs").selectAll("marker")
@@ -152,124 +224,135 @@ body {
         .append("svg:path")
         .attr("d", "M0,-5L10,0L0,5");
 
-    // edge labels
-    var tip = d3.tip()
-        .attr('class', 'd3-tip')
-        .offset([-64,-24])
-        .direction('f', function() { return { top: d3.event.pageY-18, left: d3.event.pageX-20 }})
-        .html(function(d) {
-          return "<span style='color:#7f7'>" + d.source.name +
-                  "</span> <strong><span style='color:#6df'>" + d.pred +
-                  "</span> </strong><span style='color:#fae'>" +
-                  d.target.name + "</span>";
-        });
-
-    // pointer events on tooltips were causing mouseouts on my edges!
+    // pointer events on tooltips were causing mouseouts on my edges,
+    // which cause the tooltip to quickly vanish.  They also got in the
+    // way of pan/zoom.
     var style = tip.show_style();
     style['pointer-events'] = 'none';
     tip.show_style(style);
 
-    svg.call(tip);
+    var draw = function() {
+      // Run the Cayley query and asynchronously render the results.
+      d3.json(QUERY_PATH)
+        .header('x-access-token', token)
+        .post(FETCH_GRAPH, function(error, graph) {
+          if (error) throw error;
 
-    d3.json(QUERY_PATH)
-      .header('x-access-token', token)
-      .post(FETCH_GRAPH, function(error, graph) {
-        if (error) throw error;
+          var width =  Math.round(d3.select(".graph").node().getBoundingClientRect().width),
+              height = Math.round(d3.select(".graph").node().getBoundingClientRect().height);
 
-        // It's wrapping the response in a 1-element array for some reason
-        graph = graph.result[0];
+          // It's wrapping the response in a 1-element array for some reason
+          graph = graph.result[0];
 
-        force
-            .nodes(graph.nodes)
-            .links(graph.links)
-            .start();
+          // initialize nodes with a sane default so the initial graph doesn't fly
+          // around like mad.
+          for(var i=0; i<graph.nodes.length; ++i) {
+            graph.nodes[i].x = Math.random()*width;
+            graph.nodes[i].y = Math.random()*height;
+          }
 
-        var link = svg.selectAll(".link")
-            .data(graph.links)
-            .enter().append("g");
+          force
+              .size([width, height])
+              .nodes(graph.nodes)
+              .links(graph.links)
+              .start();
 
-        // Keep track of how many timeouts are waiting to dismiss tool tip.
-        // Last one done turns out the lights.
-        var nWaiters = 0;
-        link.append("line")
-            .attr("class", "link")
-            .attr("x1", function(d) { return d.source.x; })
-            .attr("y1", function(d) { return d.source.y; })
-            .attr("x2", function(d) { return d.target.x; })
-            .attr("y2", function(d) { return d.target.y; })
-            .attr("stroke-width", "16px")
-            .style("opacity", 0)   // its the only way
-            .on('mouseover', function(d) {
-              tip.offset([-64,20-tip.getNodeEl().node().offsetWidth/2]);
-              tip.show(d);
-            })
-            .on('mousemove', function(d) {
-              tip.show(d);      // update position
-            })
-            .on('mouseout', function(d) {
-              nWaiters++;
-              setTimeout(function() { nWaiters--; if (!nWaiters) tip.hide(d); }, 1000);
-            });
+          var container = svg.append("g")
+              .attr('class', 'graphcontainer');
+          var link = container.selectAll(".link")
+              .data(graph.links)
+              .enter()
+              .append("g");
 
-        link.append("line")
-            .attr("class", "link")
-            .attr("x1", function(d) { return d.source.x; })
-            .attr("y1", function(d) { return d.source.y; })
-            .attr("x2", function(d) { return d.target.x; })
-            .attr("y2", function(d) { return d.target.y; })
-            .attr("marker-end", "url(#end)")
-            .attr("stroke", "#22c")
-            .attr("stroke-width", "1px");
+          // Keep track of how many timeouts are waiting to dismiss tool tip.
+          // Last one done turns out the lights.
+          var nWaiters = 0;
+          link.append("line")
+              .attr("class", "link")
+              .attr("x1", function(d) { return d.source.x; })
+              .attr("y1", function(d) { return d.source.y; })
+              .attr("x2", function(d) { return d.target.x; })
+              .attr("y2", function(d) { return d.target.y; })
+              .attr("stroke-width", "1em")
+              .style("opacity", 0)   // its the only way
+              .on('mouseover', function(d) {
+                tip.offset([-64,20-tip.getNodeEl().node().offsetWidth/2]);
+                tip.show(d);
+              })
+              .on('mousemove', function(d) {
+                tip.show(d);      // update position
+              })
+              .on('mouseout', function(d) {
+                nWaiters++;
+                setTimeout(function() { nWaiters--; if (!nWaiters) tip.hide(d); }, 1000);
+              });
 
+          link.append("line")
+              .attr("class", "link")
+              .attr("x1", function(d) { return d.source.x; })
+              .attr("y1", function(d) { return d.source.y; })
+              .attr("x2", function(d) { return d.target.x; })
+              .attr("y2", function(d) { return d.target.y; })
+              .attr("marker-end", "url(#end)")
+              .attr("stroke", "#22c")
+              .attr("stroke-width", "1px");
 
-        var node = svg.selectAll(".node")
-            .data(graph.nodes)
-            .enter().append("g")
-            .attr("class", "node")
-            .call(force.drag);
+          var node = container.selectAll(".node")
+              .append("g")
+              .attr("class", "nodecontainer")
+              .data(graph.nodes)
+              .enter()
+              .append("g")
+              .call(force.drag)
+              .on("mousedown", function() { d3.event.stopPropagation(); });
 
-        node.append("image")
-            .attr("xlink:href", "question.ico")
-            .attr("x", -12)
-            .attr("y", -12)
-            .attr("width", 24)
-            .attr("height", 24)
-            .style({"opacity" : "0.55"});
+          node.append("image")
+              .attr("xlink:href", "question.ico")
+              .attr("x", -12)
+              .attr("y", -12)
+              .attr("width", 24)
+              .attr("height", 24)
+              .style({"opacity" : "0.55"});
 
-        node.append("text")
-            .attr("dx", 12)
-            .attr("dy", -2)
-            .text(function(d) { return d.name; });
+          node.append("text")
+              .attr("class", "nodetext")
+              .attr("dx", 12)
+              .attr("dy", -2)
+              .text(function(d) { return d.name; });
 
-        force.on("tick", function() {
-          svg.selectAll('line')
-              .attr("x1", function(d) { return d.source.x + 10 * direction(delta(d.source, d.target)).x; })
-              .attr("y1", function(d) { return d.source.y + 10 * direction(delta(d.source, d.target)).y; })
-              .attr("x2", function(d) { return d.target.x - 10 * direction(delta(d.source, d.target)).x; })
-              .attr("y2", function(d) { return d.target.y - 10 * direction(delta(d.source, d.target)).y; });
+          force.on("tick", function() {
+            container.selectAll('line')
+                .attr("x1", function(d) { return d.source.x + 10 * direction(delta(d.source, d.target)).x; })
+                .attr("y1", function(d) { return d.source.y + 10 * direction(delta(d.source, d.target)).y; })
+                .attr("x2", function(d) { return d.target.x - 10 * direction(delta(d.source, d.target)).x; })
+                .attr("y2", function(d) { return d.target.y - 10 * direction(delta(d.source, d.target)).y; });
 
-          node.attr("transform",
-              function(d) { return "translate(" + d.x + "," + d.y + ")"; });
-        });
-    });
-  }
-
-  var login = function() {
-    var username = document.getElementById('username').value;
-    var pass = document.getElementById('pass').value;
-    token = '';
-    d3.select("body").select("svg").remove();
-    d3.json('http://' + window.location.host + '/')        // TODO: https if Let's Encrypt?
-      .header("Content-Type", "application/json")
-      .post(JSON.stringify({ 'name' : username, 'password' : pass }), function (err, data) {
-        if (data && data.success) {
-          token = data.token;
-          draw();
-        } else {
-          console.log("Failed to fetch auth token.  Error: " + err);
-        }
+            node.attr("transform",
+                function(d) { return "translate(" + d.x + "," + d.y +  ")"; });
+          });
       });
-  }
+    }
 
-  </script>
+    function zoomed() {
+      d3.select(".graphcontainer").attr("transform", "translate(" + d3.event.translate + ")scale(" + d3.event.scale + ")");
+    }
+
+    var login = function() {
+      var username = document.getElementById('username').value;
+      var pass = document.getElementById('pass').value;
+      token = '';
+      d3.select(".graphcontainer").remove();
+      d3.json('http://' + window.location.host + '/')        // TODO: https if Let's Encrypt?
+        .header("Content-Type", "application/json")
+        .post(JSON.stringify({ 'name' : username, 'password' : pass }), function (err, data) {
+          if (data && data.success) {
+            token = data.token;
+            draw();
+          } else {
+            console.log("Failed to fetch auth token.  Error: " + err);
+          }
+        });
+    }
+
+    </script>
 </body>
