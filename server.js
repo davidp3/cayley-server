@@ -21,6 +21,12 @@ app.use(function(req, res, next) {
   // If none is found then run the unauth path.
   var token = req.body.token || req.query.token || req.headers['x-access-token'];
   if (!token) {
+    if (req.url === '/') {
+      req.url = "/login" + req.url;
+      next();
+      return;
+    }
+
     req.url = "/unauth" + req.url;
     next();
     return;
@@ -31,15 +37,15 @@ app.use(function(req, res, next) {
 });
 
 // Unauthenticated routes
-// e.g. GET or POST https://localhost:62686/
+// e.g. GET or POST https://localhost:62686/[etc] with no x-access-token
 app.all('/unauth/*', function(req, res) {
   req.url = req.url.substring(7);   // chop off '/unauth'
   handlers.unauth(req, res);
 });
 
 // Authenticate User
-// e.g. POST https://localhost:62686/auth
-app.post('/auth', function(req, res) {
+// e.g. POST https://localhost:62686/
+app.post('/login', function(req, res) {
   // Confirm hashed password
   var username = req.body.name;
   var password = req.body.password;
@@ -89,7 +95,7 @@ app.use(function(req, res, next) {
 });
 
 // Authenticated route
-// e.g. GET or POST https://localhost:62686/
+// e.g. GET or POST https://localhost:62686/[etc] with auth token
 app.all('/auth/*', function(req, res) {
   req.url = req.url.substring(5);   // chop off '/auth'
   handlers.auth(req, res);

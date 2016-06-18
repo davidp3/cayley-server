@@ -1,12 +1,27 @@
 var request     = require('request');
+var path        = require('path');
 var config      = require('./config')
 
 const ALL_TAG = '__ALL__';
+const QUERY_PATH = '/api/v1/query/gremlin';
 
 module.exports = {
   'unauth' :
     function(req, res) {
-      // TODO: Fill in with unauthorized access behavior.
+      // USER TODO: Fill in with your desired unauthorized access behavior.
+
+      // If the request is to '/viz' then show my graph visualization
+      // (I haven't been able to get the Cayley visualizations to work).
+      if (req.url === '/viz') {
+        this.auth(req, res);
+        return;
+      }
+
+      // lame
+      if (req.url === '/question.ico') {
+        res.sendFile('question.ico', { root: __dirname });
+        return;
+      }
 
       // Use a basic mapping strategy.  URL format is
       // /{vertex_name}[/{out|in}/{edge_label|__ALL__}]*
@@ -60,7 +75,7 @@ module.exports = {
       }
 
       // Use "/api/v1/query/gremlin" as the path in gremlin.
-      req.url = '/api/v1/query/gremlin';
+      req.url = QUERY_PATH;
       req.body = query;
       req.headers['content-type'] = 'text/plain';
       console.log(query);
@@ -69,7 +84,14 @@ module.exports = {
 
   'auth' :
     function(req, res) {
-      // TODO: Fill in with authorized access behavior.
+      // USER TODO: Fill in with your desired authorized access behavior.
+
+      // If the request is to '/viz' then show my graph visualization
+      // (I haven't been able to get the Cayley visualizations to work).
+      if (req.url === '/viz') {
+        res.sendFile('index.html', { root: __dirname });
+        return;
+      }
 
       // Forward the request to Cayley.
       request.post(

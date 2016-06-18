@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<style>
+
+.node text {
+  pointer-events: none;
+  font: 14px sans-serif;
+  font-weight: bold;
+  color: #222;
+  opacity: 0.65;
+}
+
+.link {
+  stroke: #000;
+  stroke-opacity: .25;
+  font: 18px sans-serif;
+  font-weight: bold;
+  font-style: italic;
+  color: #22c;
+  opacity: 0.8;
+}
+
+.message {
+  text-align: center;
+}
+
+body {
+  font: 400 14px/21px "Open Sans", "Helvetica Neue", Helvetica, Arial, sans-serif;
+  background-color:#F4F4F4
+}
+
+</style>
+<body>
+
+    <div>
+      <p class="message">
+        Mouseover an edge to see the relationship type.</br>
+        Drag vertices to rearrange the graph.</br>
+      </p></p>
+      <form>
+        Username: <input type="text" maxlength="32" id="username"/><p>
+        Password: <input type="password" maxlength="32" id="pass"/><p>
+        <input type="button" value="Login" onclick="login();"/>
+      </form>
+
+    </div>
+
+  <script src="https://d3js.org/d3.v3.min.js" charset="utf-8"></script>
+  <script>
+
+  const width = 1280,
+        height = 820,
+        QUERY_PATH = 'api/v1/query/gremlin';
+
+  // This GremlinJS script will query the entire database AND return it
+  // in a format that D3's force layout can understand.
+  // BEWARE: New-lines are lost when writing strings like this so remember, at least,
+  // to use old C-style comments only, as well as statement-ending semi-colons.
+  const fetch_graph =
+    "var verts = g.V().ToArray(); \
+      var verts = verts.map(function(o) { return { 'name' : o } }); \
+      var edges = []; \
+      var vertIdxMap = {}; \
+      for (var i=0; i<verts.length; i++) { \
+        vertIdxMap[verts[i].name] = i; \
+      } \
+      for (var i=0; i<verts.length; i++) { \
+        var vert = verts[i];  \
+        /* If there are no outgoing edges then result will be null. */ \
+        var new_edges = []; \
+        g.V(vert.name).Out(null,'pred') \
+          .Map(function(o) {  \
+            new_edges.push( { 'source' : i, 'target' : vertIdxMap[o.id], 'pred' : o.pred } )  \
+          }); \
+        if (new_edges) { \
+          edges = edges.concat(new_edges);  \
+        } \
+      } \
+      g.Emit({ 'nodes' : verts, 'links' : edges })";
+
+  var token = '';
+
+  var direction = function(p) {
+    return { x: p.x/Math.sqrt(p.x*p.x + p.y*p.y), y: p.y/Math.sqrt(p.x*p.x + p.y*p.y) };
+  };
+
+  var delta = function(p1,p2) {
+    return { x: p2.x-p1.x, y: p2.y-p1.y };
+  };
+
+  var draw = function() {
+    var color = d3.scale.category20();
+
+    var force = d3.layout.force()
+        .charge(-300)
+        .linkDistance(200)
+        .linkStrength(0.1)
+        .gravity(0.05)
+        .size([width, height]);
+
+    var svg = d3.select("body").append("svg")
+        .attr("width", width)
+        .attr("height", height);
+
+    svg.append("defs").selectAll("marker")
+        .data(["end"])      // Different link/path types can be defined here
+        .enter().append("marker")    // This section adds in the arrows
+        .attr("id", String)
+        .attr("viewBox", "0 -5 10 10")
+        .attr("refX", 15)
+        .attr("refY", -1.5)
+        .attr("markerWidth", 6)
+        .attr("markerHeight", 6)
+        .attr("orient", "auto")
+        .append("svg:path")
+        .attr("d", "M0,-5L10,0L0,5");
+
+    d3.json(QUERY_PATH)
+      .header('x-access-token', token)
+      .post(fetch_graph, function(error, graph) {
+        if (error) throw error;
+
+        // It's wrapping the response in a 1-element array for some reason
+        graph = graph.result[0];
+
+        force
+            .nodes(graph.nodes)
+            .links(graph.links)
+            .start();
+
+        var link = svg.selectAll(".link")
+            .data(graph.links)
+            .enter().append("g");
+
+        var edge_label = d3.select("body")
+            .append("div")
+            .attr("class", "link")
+            .style("position", "absolute")
+          	.style("z-index", "10")
+          	.style("visibility", "hidden")
+            .text("");
+
+
+        link.append("line")
+            .attr("class", "link")
+            .attr("x1", function(d) { return d.source.x; })
+            .attr("y1", function(d) { return d.source.y; })
+            .attr("x2", function(d) { return d.target.x; })
+            .attr("y2", function(d) { return d.target.y; })
+            .attr("marker-end", "url(#end)")
+            .on("mouseover", function(d){ return edge_label.style("visibility", "visible").text(d.pred);} )
+          	.on("mousemove", function(){ return edge_label.style("top", (d3.event.pageY-18)+"px").style("left",(d3.event.pageX-20)+"px"); });
+
+        var node = svg.selectAll(".node")
+            .data(graph.nodes)
+            .enter().append("g")
+            .attr("class", "node")
+            .call(force.drag);
+
+        node.append("image")
+            .attr("xlink:href", "question.ico")
+            .attr("x", -12)
+            .attr("y", -12)
+            .attr("width", 24)
+            .attr("height", 24)
+            .style({"opacity" : "0.5"});
+
+        node.append("text")
+            .attr("dx", 12)
+            .attr("dy", -2)
+            .text(function(d) { return d.name; });
+
+        force.on("tick", function() {
+          svg.selectAll('line')
+              .attr("x1", function(d) { return d.source.x + 10 * direction(delta(d.source, d.target)).x; })
+              .attr("y1", function(d) { return d.source.y + 10 * direction(delta(d.source, d.target)).y; })
+              .attr("x2", function(d) { return d.target.x - 10 * direction(delta(d.source, d.target)).x; })
+              .attr("y2", function(d) { return d.target.y - 10 * direction(delta(d.source, d.target)).y; });
+
+          svg.selectAll('text.link')
+            .attr('x', function(d) { return (d.source.x + d.target.x)/2.0 ; })
+            .attr('y', function(d) { return (d.source.y + d.target.y)/2.0 });
+
+          node.attr("transform",
+              function(d) { return "translate(" + d.x + "," + d.y + ")"; });
+        });
+    });
+  }
+
+  var login = function() {
+    var username = document.getElementById('username').value;
+    var pass = document.getElementById('pass').value;
+    token = '';
+    d3.select("body").select("svg").remove();
+    d3.json('http://' + window.location.host + '/')        // TODO: https if Let's Encrypt?
+      .header("Content-Type", "application/json")
+      .post(JSON.stringify({ 'name' : username, 'password' : pass }), function (err, data) {
+        if (data && data.success) {
+          token = data.token;
+          draw();
+        } else {
+          console.log("Failed to fetch auth token.  Error: " + err);
+        }
+      });
+  }
+
+  </script>
+</body>

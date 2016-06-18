@@ -13,7 +13,9 @@ HTTP operation (including database writes) for authenticated users.
 As authentication is highly insecure without SSL, we allow Let's
 Encrypt to optionally secure the server.
 
-The Cayley web interface is not exposed by this server.
+The Cayley web interface is not exposed by this server.  In its stead,
+I have included a D3.js-powered graph visualizer that you can use to
+explore the relationships in the graph.
 
 The handlers are defined in handlers.js.  By changing
 `handlers.auth` and `handlers.unauth`, this server can be used for
@@ -30,7 +32,7 @@ the `auth` handler, which allows any Cayley operation to be run.
 persistent docker volume if not already done):
 ```sh
 docker volume create --name data_volume
-docker run -v data_volume:/data -p 64321:64321 -d davidp3/cayley:0.4.1-trunk
+docker run -v data_volume:/data -p 64321:64321 -d docker.io/davidp3/cayley:0.4.1-trunk
 ```
 See [cayley-docker](https://github.com/davidp3/cayley-docker) for more info.
 2. Next, if you are running on a platform other than Linux, the backing Cayley
@@ -44,10 +46,22 @@ It will probably be `192.168.99.100`.  On Linux, you can use the default of
 `localhost`.
 3. Finally, launch cayley-server:
 ```sh
-docker run -d -v data_volume:/data -p 62686:62686 -e CAYLEY_INT_SERVER_IP=<my_internal_docker_ip> davidp3/cayley-server:0.4.1-trunk
+docker run -d -v data_volume:/data -p 62686:62686 -e CAYLEY_INT_SERVER_IP=<my_internal_docker_ip> docker.io/davidp3/cayley-server:0.4.1-trunk
 ```
 Again, on a Linux host, you can omit the
 `-e CAYLEY_INT_SERVER_IP=<my_internal_docker_ip>` part.
+
+## The Graph Visualizer
+
+When the server is running, say at `localhost:62686`, the graph visualizer
+can be reached with any browser at `localhost:62686/viz`.  There you will
+enter the credentials you establish below (or `admin` and `password` if
+using the defaults).  This will bring up the full graph in a force-layout
+view.  You can drag nodes to rearrange the graph and mouse-over edges
+to see the predicate (edge label) that they represent.
+
+Login is required since the query to fetch the entire graph can be expensive
+and you may want to hide that data.
 
 ## Configuration
 
@@ -58,7 +72,7 @@ the `docker run` command:
 default is `admin`.
 2. `CAYLEY_BCRYPT_PASSWD=my_bcrypted_password` must be the hash of the password you
 log in with.  The default is a hash of `password`.
-I haven't found a decent way to generate the hash` without using the
+I haven't found a decent way to generate the hash without using the
 javascript function used in this package.  There are working Python and Perl solutions
 [here](http://unix.stackexchange.com/questions/52108/how-to-create-sha512-password-hashes-on-command-line)...
 they all kind of suck.
