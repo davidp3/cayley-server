@@ -342,7 +342,7 @@ body {
       var pass = document.getElementById('pass').value;
       token = '';
       d3.select(".graphcontainer").remove();
-      d3.json('http://' + window.location.host + '/')        // TODO: https if Let's Encrypt?
+      d3.json(location.protocol + '//' + window.location.host + '/')
         .header("Content-Type", "application/json")
         .post(JSON.stringify({ 'name' : username, 'password' : pass }), function (err, data) {
           if (data && data.success) {

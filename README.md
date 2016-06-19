@@ -1,4 +1,10 @@
-WIP.
+TL;DR: cayley-server is a secure, dockerized
+way to expose the Cayley graph database from a web server.  It has a
+simple visualization client, an demo of which can be found
+[here](https://deepdownstudios.com:62686/viz).  (The login name is
+"admin" and the password is "password").  You can also use the demo
+server to experiment with queries (the graph database is
+read-only, however).
 
 ## Cayley Server
 
@@ -29,27 +35,44 @@ the `auth` handler, which allows any Cayley operation to be run.
 ## Usage
 
 1. First, you need to launch the backing Cayley instance (and create the
-persistent docker volume if not already done):
+persistent docker volume if not already done).  This is done with
+the sister project, [cayley-docker](https://github.com/davidp3/cayley-docker).
+We store the Docker container ID for the running instance for step #2.
+<br>
+Repeating the instructions to launch `cayley-docker`, first we create
+a persistent docker volume to hold the database:
 ```sh
 docker volume create --name data_volume
-docker run -v data_volume:/data -p 64321:64321 -d docker.io/davidp3/cayley:0.4.1-trunk
 ```
-See [cayley-docker](https://github.com/davidp3/cayley-docker) for more info.
-2. Next, if you are running on a platform other than Linux, the backing Cayley
-instance will not be found at localhost so you need to find the URL, which
-can be obtained by running `docker-machine` after
-starting `cayley-docker`:
+Then launch it.  Normally, you will not want to expose `cayley-docker` to the
+world as it is not secured.
 ```sh
-docker-machine ls | awk '{print $5}'
+CAYLEY_CID=docker run -v data_volume:/data -d docker.io/davidp3/cayley:0.4.1-trunk
 ```
-It will probably be `192.168.99.100`.  On Linux, you can use the default of
-`localhost`.
-3. Finally, launch cayley-server:
+If you wish to expose `cayley-docker` as well as `cayley-server`, forward the port:
 ```sh
-docker run -d -v data_volume:/data -p 62686:62686 -e CAYLEY_INT_SERVER_IP=<my_internal_docker_ip> docker.io/davidp3/cayley-server:0.4.1-trunk
+CAYLEY_CID=docker run -v data_volume:/data -p 64321:64321 -d docker.io/davidp3/cayley:0.4.1-trunk
 ```
-Again, on a Linux host, you can omit the
-`-e CAYLEY_INT_SERVER_IP=<my_internal_docker_ip>` part.
+2. Launch cayley-server.  The only complex part of this instruction is the
+setting of `CAYLEY_INT_SERVER_IP`, which is done differently for Mac/Windows,
+which use `docker-machine`, and Linux, which does not.
+<br>
+On Windows/Mac, this is the command to launch `cayley-server`:
+```sh
+docker run -d -v data_volume:/data -p 62686:62686 \
+  -e CAYLEY_INT_SERVER_IP=`docker-machine ls | awk '{print $5}'` \
+  docker.io/davidp3/cayley-server:0.4.1-trunk
+```
+The server will be running at the IP address returned by the
+`docker-machine ls | awk '{print $5}` command.  This is usually 192.168.99.100.
+<br>
+On Linux, this is the command:
+```sh
+docker run -d -v data_volume:/data -p 62686:62686 \
+  -e CAYLEY_INT_SERVER_IP=`docker inspect --format '{{ .NetworkSettings.IPAddress }}' $CAYLEY_CID` \
+  docker.io/davidp3/cayley-server:0.4.1-trunk
+```
+You can reach the server at `localhost`.
 
 ## The Graph Visualizer
 
@@ -58,12 +81,16 @@ can be reached with any browser at `localhost:62686/viz`.  There you will
 enter the credentials you establish below (or `admin` and `password` if
 using the defaults).  This will bring up the full graph in a force-layout
 view.  You can drag nodes to rearrange the graph and mouse-over edges
-to see the predicate (edge label) that they represent.
+to see the predicate (edge label) that they represent.  A demo
+using the default credentials can be found
+[here](https://deepdownstudios.com:62686/viz).
 
 Login is required since the query to fetch the entire graph can be expensive
 and you may want to hide that data.
 
 ## Configuration
+
+### General
 
 You should definitely set these environment vars using `-e` switches to
 the `docker run` command:
@@ -77,13 +104,49 @@ javascript function used in this package.  There are working Python and Perl sol
 [here](http://unix.stackexchange.com/questions/52108/how-to-create-sha512-password-hashes-on-command-line)...
 they all kind of suck.
 
+### Let's Encrypt
+
 To enable Let's Encrypt, you must set three environment variables:
 
 1. `LEX=1` to turn on Let's Encrypt
 2. `LEX_DOMAIN=com.mydomain` must match the name of the domain you are running on/securing.
 3. `LEX_EMAIL=com.whatever.me` should be your email address.
 
-Finally, you will likely want to change the code in `handlers.unauth` for your
+You can set up Let's Encrypt any number of ways: through a `certbot` derivative
+like the `letsencrypt` client, through a portal, or whatever.  See
+[their Getting Started page](https://letsencrypt.org/getting-started/) for
+how.  (This could be MUCH clearer...)
+
+Let's Encrypt puts your credentials in any number of places to satisfy myriad
+web servers so this may not be obvious for your configuration but most installs
+will have these four files easily accessible:
+
+* `chain.pem`
+* `fullchain.pem`
+* `privkey.pem`
+* `cert.pem`
+
+They are often found in `$HOME/letsencrypt/etc/live/{your.secured.domain.name}/`,
+`/etc/letsencrypt/live/{your.secured.domain.name}/`,
+or some place similar.  These files need to be shared with the Docker instance.
+We do that by mounting the folder as another shared volume.
+This is done by slightly altering the `docker run` command above (shown here
+in the Linux form):
+```sh
+docker run -d -v data_volume:/data -p 62686:62686 \
+  -v {local/path/to/pem/file/folder}:/root/letsencrypt/etc/live/{your.secured.domain.name}/ \
+  -e CAYLEY_INT_SERVER_IP=`docker inspect --format '{{ .NetworkSettings.IPAddress }}' $CAYLEY_CID` \
+  -e LEX=1 -e LEX_DOMAIN=deepdownstudios.com -e LEX_EMAIL=david@deepdownstudios.com \
+  docker.io/davidp3/cayley-server:0.4.1-trunk
+```
+As an example, if the pem files for my `deepdownstudios.com` domain are
+in the `etc` subfolder, I add:
+
+    -v /etc/letsencrypt/live/deepdownstudios.com:/root/letsencrypt/etc/live/deepdownstudios.com/
+
+### Hacking on the server
+
+You may want to change the code in `handlers.unauth` for your personal
 use case as described above.
 
 ## Docker
