@@ -158,5 +158,5 @@ docker build -t davidp3/cayley-server:0.4.1-trunk .
 This will cache the source from the cayley-server trunk.  To invalidate this
 for a rebuild, try:
 ```sh
-docker build --build-arg=CACHE_DATE=`date` -t davidp3/cayley-server:0.4.1-trunk .
+docker build --build-arg=CACHE_DATE='`date`' -t davidp3/cayley-server:0.4.1-trunk .
 ```

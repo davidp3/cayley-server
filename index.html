@@ -265,6 +265,23 @@ body {
 
     var token = '';
 
+    var login = function() {
+      var username = document.getElementById('username').value;
+      var pass = document.getElementById('pass').value;
+      token = '';
+      d3.select(".graphcontainer").remove();
+      d3.json(location.protocol + '//' + window.location.host + '/')
+        .header("Content-Type", "application/json")
+        .post(JSON.stringify({ 'name' : username, 'password' : pass }), function (err, data) {
+          if (data && data.success) {
+            token = data.token;
+            draw();
+          } else {
+            console.log("Failed to fetch auth token.  Error: " + err);
+          }
+        });
+    }
+
     var direction = function(p) {
       return { x: p.x/Math.sqrt(p.x*p.x + p.y*p.y), y: p.y/Math.sqrt(p.x*p.x + p.y*p.y) };
     };
@@ -435,23 +452,6 @@ body {
       d3.select(".graphcontainer").attr("transform", "translate(" + d3.event.translate + ")scale(" + d3.event.scale + ")");
     }
 
-    var login = function() {
-      var username = document.getElementById('username').value;
-      var pass = document.getElementById('pass').value;
-      token = '';
-      d3.select(".graphcontainer").remove();
-      d3.json(location.protocol + '//' + window.location.host + '/')
-        .header("Content-Type", "application/json")
-        .post(JSON.stringify({ 'name' : username, 'password' : pass }), function (err, data) {
-          if (data && data.success) {
-            token = data.token;
-            draw();
-          } else {
-            console.log("Failed to fetch auth token.  Error: " + err);
-          }
-        });
-    }
-
     function setup_minmax_button() {
       document.getElementById("minbtn").addEventListener("click", function() {
         document.getElementById("minbtn").style.visibility = "hidden";
@@ -503,11 +503,8 @@ body {
         newInput.onclick = (function(elabel, einput) {
           return function() {
             for(var j=0; j<edges.length; j++) {
-              console.log(graph.links[j].pred);
-              console.log(elabel);
               if(graph.links[j].pred === elabel) {
                 var edge = edges[j];
-                console.log(edge);
                 edge.style.visibility = einput.checked ? "visible" : "hidden";
               }
             }
