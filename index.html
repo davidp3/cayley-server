@@ -48,8 +48,9 @@ body {
   height: calc(100% - 80px);
   overflow: auto;
   padding: 12px;
-  border:solid 2px #00F;
+  border:solid 2px #008;
   border-radius: 8px;
+  color: #313
 }
 
 .headertop {
@@ -98,6 +99,10 @@ body {
   font-size: 16px;
 }
 
+#login_message {
+  color: #F11;
+}
+
 .message {
   margin-top: 0;
   flex: 1;
@@ -106,6 +111,7 @@ body {
 }
 
 .edgelist {
+  margin-bottom: 12px;
   min-width: 100%;
   table-layout: fixed;
 }
@@ -197,6 +203,18 @@ body {
 </style>
 
 <body>
+    <script>
+      var login = null;
+      var logging_in = false;
+      var waitForLogin = function() {
+        setTimeout(function() {
+          if (!logging_in) {
+            if (login) login();
+            else waitForLogin();
+          }
+        }, 200);
+      };
+    </script>
 
     <div class="header" id="header">
       <div class="collapse">
@@ -212,7 +230,11 @@ body {
           <form class="pform">
             Username: <input type="text" maxlength="32" id="username"/><p>
             Password: <input type="password" maxlength="32" id="pass"/><p>
-            <input class="button" type="button" value="Login" onclick="login();"/>
+            <input class="button" type="button" value="Login"
+                   onclick="if(login && !logging_in) { login(); }
+                            else if (!logging_in) { waitForLogin(); }"
+                   /><p>
+            <span id="login_message"/>
           </form>
           <ul class="message">
             <li>Mouseover an edge to see the relationship type.</li>
@@ -222,8 +244,8 @@ body {
             </ul>
         </div>
         <br>
-          <table class="edgelist" id="edgelist">
-          </table>
+        <table class="edgelist" id="edgelist">
+        </table>
       </div>
     </div>
 
@@ -265,7 +287,8 @@ body {
 
     var token = '';
 
-    var login = function() {
+    login = function() {
+      logging_in = true;
       var username = document.getElementById('username').value;
       var pass = document.getElementById('pass').value;
       token = '';
@@ -274,10 +297,16 @@ body {
         .header("Content-Type", "application/json")
         .post(JSON.stringify({ 'name' : username, 'password' : pass }), function (err, data) {
           if (data && data.success) {
+            document.getElementById('login_message').textContent = '';
+            console.log("Successful login.");
             token = data.token;
             draw();
+            logging_in = false;
           } else {
-            console.log("Failed to fetch auth token.  Error: " + err);
+            document.getElementById('login_message').textContent =
+              "Login error: " + data.message;
+            console.log("Failed to fetch auth token.  Error: " + data.message);
+            logging_in = false;
           }
         });
     }
