@@ -17,8 +17,8 @@ module.exports = {
         return;
       }
 
-      // lame
-      const files = [ 'question.ico', 'd3-tip.js' ];
+      // http://icons8.com
+      const files = [ 'question.ico', 'd3-tip.js', 'max.ico', 'min.ico' ];
       if (files.indexOf(req.url.substring(1)) != -1) {
         res.sendFile(req.url.substring(1), { root: __dirname });
         return;

@@ -14,9 +14,6 @@ html, body {
   min-height: 100%;
   height: 100%;
   max-height: 100%;
-
-  display: flex;
-  flex-direction: column;
 }
 
 body {
@@ -26,26 +23,107 @@ body {
 
 .header {
   margin: 16px 16px 4px 16px;
-  background: rgba(180, 180, 255, 0.25);
-  padding: 16px;
+  background: rgba(180, 180, 255, 0.8);
+  padding: 8px;
+  position: fixed;
+  left: 24px;
+  right: 24px;
+  top: 24px;
+  bottom: 24px;
   display: flex;
   border-radius: 16px;
+  font-size: 18px;
+  transition: max-height 1s ease-in, max-width 1s ease-in;
+  overflow: hidden;
+}
+
+.fullsizehdr {
+  position: relative;
+  margin: 40px 8px 20px 8px;
+  left: 0;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  min-width: calc(100vw - 156px);
+  height: calc(100% - 80px);
+  overflow: auto;
+  padding: 12px;
+  border:solid 2px #00F;
+  border-radius: 8px;
+}
+
+.headertop {
+  display: flex;
   flex-direction: row;
 }
 
-.message {
-  width: 50%;
-  flex: 1;
+.collapse {
+  position: sticky;
+  left: 8px;
+  top: 8px;
+  width: 16px;
+  height: 16px;
+}
+
+.collapsebtn {
+  position: absolute;
+  padding: 0;
+  border-width: 0;
+  width: 16px;
+  height: 16px;
+  left: 0;
+  right: 0;
+  top: 0;
+  bottom: 0;
+}
+
+.collapseimg {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  bottom: 0;
 }
 
 .pform {
-  width: 50%;
   flex: 1;
+  padding: 8px 0 0 32px;
+}
+
+.pform p {
+  margin: 12px 0px 12px 0px;
+}
+
+.pform input {
+  font-size: 16px;
+}
+
+.message {
+  margin-top: 0;
+  flex: 1;
+  padding: 0 0 0 0px;
+  line-height: 28px;
+}
+
+.edgelist {
+  min-width: 100%;
+  table-layout: fixed;
+}
+
+.edgelabel {
+  border:solid 1px #00F;
+  border-radius: 4px;
+  background: rgba(180, 180, 255, 0.8);
+  padding:16px;
+}
+
+.edgelabel span {
+  padding: 0 0 0 8px;
 }
 
 .graph {
   width: 100%;
-  flex: 1;
+  height: 100%;
 }
 
 .svg-graph {
@@ -120,17 +198,33 @@ body {
 
 <body>
 
-    <div class="header">
-      <form class="pform">
-        Username: <input type="text" maxlength="32" id="username"/><p>
-        Password: <input type="password" maxlength="32" id="pass"/><p>
-        <input type="button" value="Login" onclick="login();"/>
-      </form>
-      <ul class="message">
-        <li>Mouseover an edge to see the relationship type.</li>
-        <li>Drag vertices to rearrange the graph.</li>
-        <li>Click/drag the background to pan/zoom around the graph.</li>
-      </ul>
+    <div class="header" id="header">
+      <div class="collapse">
+        <button class="collapsebtn" id="minbtn">
+          <image class="collapseimg" src="min.ico" width=16 height=16 />
+        </button>
+        <button class="collapsebtn" style="visibility: hidden;" id="maxbtn">
+          <image class="collapseimg" src="max.ico" width=16 height=16 />
+        </button>
+      </div>
+      <div class="fullsizehdr">
+        <div class="headertop">
+          <form class="pform">
+            Username: <input type="text" maxlength="32" id="username"/><p>
+            Password: <input type="password" maxlength="32" id="pass"/><p>
+            <input class="button" type="button" value="Login" onclick="login();"/>
+          </form>
+          <ul class="message">
+            <li>Mouseover an edge to see the relationship type.</li>
+            <li>Drag vertices to rearrange the graph.</li>
+            <li>Click/drag the background to pan/zoom around the graph.</li>
+            <li>Press the minimize button at the top-left to expose the graph.</li>
+            </ul>
+        </div>
+        <br>
+          <table class="edgelist" id="edgelist">
+          </table>
+      </div>
     </div>
 
     <div class="graph"/>
@@ -231,6 +325,8 @@ body {
     style['pointer-events'] = 'none';
     tip.show_style(style);
 
+    setup_minmax_button();
+
     var draw = function() {
       // Run the Cayley query and asynchronously render the results.
       d3.json(QUERY_PATH)
@@ -297,6 +393,8 @@ body {
               .attr("stroke", "#22c")
               .attr("stroke-width", "1px");
 
+          make_edge_label_menu(graph, link[0]);
+
           var node = container.selectAll(".node")
               .append("g")
               .attr("class", "nodecontainer")
@@ -352,6 +450,74 @@ body {
             console.log("Failed to fetch auth token.  Error: " + err);
           }
         });
+    }
+
+    function setup_minmax_button() {
+      document.getElementById("minbtn").addEventListener("click", function() {
+        document.getElementById("minbtn").style.visibility = "hidden";
+        document.getElementById("maxbtn").style.visibility = "visible";
+        document.getElementById("header").style['max-width'] = "32px";
+        document.getElementById("header").style['max-height'] = "32px";
+      });
+
+      document.getElementById("maxbtn").addEventListener("click", function() {
+        document.getElementById("maxbtn").style.visibility = "hidden";
+        document.getElementById("minbtn").style.visibility = "visible";
+        document.getElementById("header").style['max-width'] = "100vw";
+        document.getElementById("header").style['max-height'] = "100vh";
+      });
+    }
+
+    function make_edge_label_menu(graph, edges) {
+      var elabels_set = {};
+      for(var i=0; i<graph.links.length; i++) {
+        elabels_set[graph.links[i].pred] = (elabels_set[graph.links[i].pred] || 0) + 1;
+      }
+      var elabels = Object.keys(elabels_set);
+      elabels.sort(function(x,y) {
+        var l1 = Array.from(x).filter(function(v) {	return /[a-zA-Z0-9]/.test(v); }).join('');
+        var l2 = Array.from(y).filter(function(v) {	return /[a-zA-Z0-9]/.test(v); }).join('');
+        return l1.localeCompare(l2);
+      });
+      var tableElt = document.getElementById("edgelist");
+      // delete any old list items
+      for (var i=tableElt.childNodes.length-1; i>=0; i--) {
+        tableElt.removeChild(tableElt.childNodes[i]);
+      }
+      var trElt = null;
+      for(var i=0; i<elabels.length; i++) {
+        if (i%6 == 0) {
+          trElt = document.createElement('tr');
+          tableElt.appendChild(trElt);
+        }
+
+        var newTd = document.createElement('td');
+        newTd.className = "edgelabel";
+        var newLabel = document.createElement("label");
+        newLabel.name = elabels[i];
+        var newText = document.createElement("span");
+        newText.textContent = elabels[i];
+        var newInput = document.createElement("input");
+        newInput.type = "checkbox";
+        newInput.checked = true;
+        newInput.onclick = (function(elabel, einput) {
+          return function() {
+            for(var j=0; j<edges.length; j++) {
+              console.log(graph.links[j].pred);
+              console.log(elabel);
+              if(graph.links[j].pred === elabel) {
+                var edge = edges[j];
+                console.log(edge);
+                edge.style.visibility = einput.checked ? "visible" : "hidden";
+              }
+            }
+          }
+        })(elabels[i], newInput);
+        newLabel.appendChild(newInput);
+        newLabel.appendChild(newText);
+        newTd.appendChild(newLabel);
+        trElt.appendChild(newTd);
+      }
     }
 
     </script>

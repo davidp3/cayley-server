@@ -47,11 +47,11 @@ docker volume create --name data_volume
 Then launch it.  Normally, you will not want to expose `cayley-docker` to the
 world as it is not secured.
 ```sh
-CAYLEY_CID=docker run -v data_volume:/data -d docker.io/davidp3/cayley:0.4.1-trunk
+CAYLEY_CID=`docker run -v data_volume:/data -d docker.io/davidp3/cayley:0.4.1-trunk`
 ```
 If you wish to expose `cayley-docker` as well as `cayley-server`, forward the port:
 ```sh
-CAYLEY_CID=docker run -v data_volume:/data -p 64321:64321 -d docker.io/davidp3/cayley:0.4.1-trunk
+CAYLEY_CID=`docker run -v data_volume:/data -p 64321:64321 -d docker.io/davidp3/cayley:0.4.1-trunk`
 ```
 2. Launch cayley-server.  The only complex part of this instruction is the
 setting of `CAYLEY_INT_SERVER_IP`, which is done differently for Mac/Windows,
@@ -60,7 +60,7 @@ which use `docker-machine`, and Linux, which does not.
 On Windows/Mac, this is the command to launch `cayley-server`:
 ```sh
 docker run -d -v data_volume:/data -p 62686:62686 \
-  -e CAYLEY_INT_SERVER_IP=`docker-machine ls | awk '{print $5}'` \
+  -e CAYLEY_INT_SERVER_IP=`docker-machine ls | grep tcp | awk '{print $5}' | awk -F/ '{print $3}' | awk -F: '{print $1}'` \
   docker.io/davidp3/cayley-server:0.4.1-trunk
 ```
 The server will be running at the IP address returned by the
@@ -154,4 +154,9 @@ use case as described above.
 To build the Docker image locally for hackin':
 ```sh
 docker build -t davidp3/cayley-server:0.4.1-trunk .
+```
+This will cache the source from the cayley-server trunk.  To invalidate this
+for a rebuild, try:
+```sh
+docker build --build-arg=CACHE_DATE=`date` -t davidp3/cayley-server:0.4.1-trunk .
 ```
