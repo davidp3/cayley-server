@@ -497,6 +497,20 @@ body {
       });
     }
 
+    function update_all_edges_input() {
+      var gotTrue=false, gotFalse=false;
+
+      var allInputs = document.getElementById("edgelist").querySelectorAll("input");
+      // The first one is the "all inputs" button.  Skip it.
+      for(var j=1; j<allInputs.length; j++) {
+        gotTrue = gotTrue || allInputs[j].checked;
+        gotFalse = gotFalse || !allInputs[j].checked;
+      }
+
+      allInputs[0].checked = !gotFalse;
+      allInputs[0].indeterminate = gotTrue && gotFalse;
+    }
+
     function make_edge_label_menu(graph, edges) {
       var elabels_set = {};
       for(var i=0; i<graph.links.length; i++) {
@@ -513,18 +527,46 @@ body {
       for (var i=tableElt.childNodes.length-1; i>=0; i--) {
         tableElt.removeChild(tableElt.childNodes[i]);
       }
-      var trElt = null;
+
+      // Add an "<All Edges>" box
+      var trElt = document.createElement('tr');
+      tableElt.appendChild(trElt);
+      var newTd = document.createElement('td');
+      newTd.className = "edgelabel";
+      var newLabel = document.createElement("label");
+      newLabel.name = "All Edges";
+      var newText = document.createElement("span");
+      //newText.textContent = "";
+      var allEdgesInput = document.createElement("input");
+      allEdgesInput.type = "checkbox";
+      allEdgesInput.checked = true;
+      allEdgesInput.onclick = (function(einput) {
+        return function() {
+          var allInputs = tableElt.querySelectorAll("input");
+          for(var j=0; j<allInputs.length; j++) {
+            allInputs[j].checked = einput.checked;
+          }
+          for(var j=0; j<edges.length; j++) {
+            edges[j].style.visibility = einput.checked ? "visible" : "hidden";
+          }
+        }
+      })(allEdgesInput);
+      newLabel.appendChild(allEdgesInput);
+      newLabel.appendChild(newText);
+      newTd.appendChild(newLabel);
+      trElt.appendChild(newTd);
+
       for(var i=0; i<elabels.length; i++) {
-        if (i%6 == 0) {
+        if (i%6 == 5) {     // 6 to a row... but the first is the "<All Edges>" box above
           trElt = document.createElement('tr');
           tableElt.appendChild(trElt);
         }
 
-        var newTd = document.createElement('td');
+        newTd = document.createElement('td');
         newTd.className = "edgelabel";
-        var newLabel = document.createElement("label");
+        newLabel = document.createElement("label");
         newLabel.name = elabels[i];
-        var newText = document.createElement("span");
+        newText = document.createElement("span");
         newText.textContent = elabels[i];
         var newInput = document.createElement("input");
         newInput.type = "checkbox";
@@ -533,10 +575,10 @@ body {
           return function() {
             for(var j=0; j<edges.length; j++) {
               if(graph.links[j].pred === elabel) {
-                var edge = edges[j];
-                edge.style.visibility = einput.checked ? "visible" : "hidden";
+                edges[j].style.visibility = einput.checked ? "visible" : "hidden";
               }
             }
+            update_all_edges_input();
           }
         })(elabels[i], newInput);
         newLabel.appendChild(newInput);
