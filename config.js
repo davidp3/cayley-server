@@ -22,8 +22,10 @@ module.exports = {
   // Duration for which the login token is valid.
   'expiresIn'       : process.env.CAYLEY_AUTH_EXPIRES_IN || '24h',
 
-  // The one account we allow to access authenticated URLs.
-  'username'        : process.env.CAYLEY_USERNAME || 'admin',
-  'bcrypt_password' : process.env.CAYLEY_BCRYPT_PASSWD ||
-      bcrypt.hashSync('password', 10 /* # salt rounds */)
+  // Name of password file.  Suffix is optional if .js or .json.
+  // The ./ if specifying a relative path is not.
+  'passwordFile'    : process.env.PASSWORD_FILE || './passwords',
+
+  // List of roles understood by `auth` function.
+  'roles'           : [ 'admin', 'empl' ]
 };

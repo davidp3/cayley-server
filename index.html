@@ -23,7 +23,7 @@ body {
 
 .header {
   margin: 16px 16px 4px 16px;
-  background: rgba(180, 180, 255, 0.8);
+  background: rgba(170, 170, 200, 0.85);
   padding: 8px;
   position: fixed;
   left: 24px;
@@ -37,7 +37,7 @@ body {
   overflow: hidden;
 }
 
-.fullsizehdr {
+.formandmessage {
   position: relative;
   margin: 40px 8px 20px 8px;
   left: 0;
@@ -117,9 +117,9 @@ body {
 }
 
 .edgelabel {
-  border:solid 1px #00F;
+  border:solid 1px #008;
   border-radius: 4px;
-  background: rgba(180, 180, 255, 0.8);
+  background: rgba(180, 180, 220, 0.8);
   padding:16px;
 }
 
@@ -225,11 +225,13 @@ body {
           <image class="collapseimg" src="max.ico" width=16 height=16 />
         </button>
       </div>
-      <div class="fullsizehdr">
+      <div class="formandmessage">
         <div class="headertop">
           <form class="pform">
-            Username: <input type="text" maxlength="32" id="username"/><p>
-            Password: <input type="password" maxlength="32" id="pass"/><p>
+            <table>
+            <tr><td>Username:</td><td><input type="text" maxlength="32" id="username"/></td></tr>
+            <tr><td>Password:</td><td><input type="password" maxlength="32" id="pass"/><p></td></tr>
+            </table>
             <input class="button" type="button" value="Login"
                    onclick="if(login && !logging_in) { login(); }
                             else if (!logging_in) { waitForLogin(); }"
@@ -257,33 +259,8 @@ body {
     <script type="text/javascript" src="d3-tip.js"></script>
     <script>
 
-    const QUERY_PATH = 'api/v1/query/gremlin';
-
-    // This GremlinJS script will query the entire database AND return it
-    // in a format that D3's force layout can understand.
-    // BEWARE: New-lines are lost when writing strings like this so remember, at least,
-    // to use old C-style comments only, as well as statement-ending semi-colons.
-    const FETCH_GRAPH =
-      "var verts = g.V().ToArray(); \
-        var verts = verts.map(function(o) { return { 'name' : o } }); \
-        var edges = []; \
-        var vertIdxMap = {}; \
-        for (var i=0; i<verts.length; i++) { \
-          vertIdxMap[verts[i].name] = i; \
-        } \
-        for (var i=0; i<verts.length; i++) { \
-          var vert = verts[i];  \
-          /* If there are no outgoing edges then result will be null. */ \
-          var new_edges = []; \
-          g.V(vert.name).Out(null,'pred') \
-            .Map(function(o) {  \
-              new_edges.push( { 'source' : i, 'target' : vertIdxMap[o.id], 'pred' : o.pred } )  \
-            }); \
-          if (new_edges) { \
-            edges = edges.concat(new_edges);  \
-          } \
-        } \
-        g.Emit({ 'nodes' : verts, 'links' : edges })";
+    const nLabelsPerRow = 5;
+    const QUERY_PATH = '/viz/graph';
 
     var token = '';
 
@@ -302,10 +279,15 @@ body {
             token = data.token;
             draw();
             logging_in = false;
+          } else if (data) {
+            document.getElementById('login_message').textContent =
+                "Login error: " + data.message;
+            console.log("Failed to fetch auth token.  Error: " + data.message);
+            logging_in = false;
           } else {
             document.getElementById('login_message').textContent =
-              "Login error: " + data.message;
-            console.log("Failed to fetch auth token.  Error: " + data.message);
+                "Login Failed.";
+            console.log("Failed to fetch auth token.");
             logging_in = false;
           }
         });
@@ -377,7 +359,7 @@ body {
       // Run the Cayley query and asynchronously render the results.
       d3.json(QUERY_PATH)
         .header('x-access-token', token)
-        .post(FETCH_GRAPH, function(error, graph) {
+        .get(function(error, graph) {
           if (error) throw error;
 
           var width =  Math.round(d3.select(".graph").node().getBoundingClientRect().width),
@@ -557,7 +539,7 @@ body {
       trElt.appendChild(newTd);
 
       for(var i=0; i<elabels.length; i++) {
-        if (i%6 == 5) {     // 6 to a row... but the first is the "<All Edges>" box above
+        if (i%nLabelsPerRow == (nLabelsPerRow-1)) {     // 6 to a row... but the first is the "<All Edges>" box above
           trElt = document.createElement('tr');
           tableElt.appendChild(trElt);
         }

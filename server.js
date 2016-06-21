@@ -50,27 +50,44 @@ app.post('/login', function(req, res) {
   var username = req.body.name;
   var password = req.body.password;
 
-  if (username !== config.username) {
-    res.json({ success: false, message: 'Authentication failed. User not found.' });
+  var passwords = require(config.passwordFile);
+  if (!passwords) {
+    res.json({ success: false, message: 'Server configuration issue #1.'});   // unable to locate password file
     return;
   }
 
-  bcrypt.compare(password, config.bcrypt_password, function(err, matched) {
-    if (!matched) {
-      res.json({ success: false, message: 'Authentication failed. Wrong password.' });
+  if (!passwords.hasOwnProperty(username)) {
+    res.json({ success: false, message: 'Authentication failed. User not found.' });
+    return;
+  };
+
+  var storedPassword = passwords[username];
+
+  var asyncDecode = function(rolesTodo) {
+    if (rolesTodo.length == 0) {
+      res.json({ success: false, message: 'Authentication failed. Bad password.' });
       return;
     }
 
-    var token = jwt.sign({ name: username, password: password }, app.get('secret'), {
-      expiresIn: config.expiresIn
-    });
+    var role = rolesTodo.pop();
+    bcrypt.compare(password+role, storedPassword, function(err, matched) {
+      if (!matched) {
+        asyncDecode(rolesTodo);
+        return;
+      }
 
-    res.json({
-      success: true,
-      message: '',
-      token: token
-    });
-  });
+      var token = jwt.sign({ name: username, password: password, role: role },
+        app.get('secret'), { expiresIn: config.expiresIn });
+
+      res.json({
+        success: true,
+        message: '',
+        token: token
+      });
+    })
+  };
+
+  asyncDecode(Array.from(config.roles));    // it mutates the array so use a copy
 });
 
 // Verify the token
@@ -89,6 +106,7 @@ app.use(function(req, res, next) {
       return res.json({ success: false, message: 'Bad authentication token.' });
     } else {
       req.decoded = decoded;
+      console.log('User: ' + req.decoded.name + ' logged in with role: ' + req.decoded.role);
       next();
     }
   });

@@ -2,7 +2,7 @@ TL;DR: cayley-server is a secure, dockerized
 way to expose the Cayley graph database from a web server.  It has a
 simple visualization client, an demo of which can be found
 [here](https://deepdownstudios.com:62686/viz).  (The login name is
-"admin" and the password is "password").  You can also use the demo
+"user" and the password is "password").  You can also use the demo
 server to experiment with queries (the graph database is
 read-only, however).
 
@@ -90,19 +90,29 @@ and you may want to hide that data.
 
 ## Configuration
 
-### General
+### Users
 
-You should definitely set these environment vars using `-e` switches to
-the `docker run` command:
+The system uses a basic Json Web Token-based security system with roles for
+permissions.  Passwords are stored in `passwords.json` by default
+(this location is configurable in `config.js`).  By default, there is a user
+named `admin` with password `password` that has admin role and a user
+`user` with password `password` who has an `empl` role.  The `admin` role
+has total REST access to the graph database.  The `empl` role has only
+access to the visualizer.  Unauthorized access has its own REST API
+that provides limited query access.
 
-1. `CAYLEY_USERNAME=myusername` is the (only) name you can log in with.  The
-default is `admin`.
-2. `CAYLEY_BCRYPT_PASSWD=my_bcrypted_password` must be the hash of the password you
-log in with.  The default is a hash of `password`.
-I haven't found a decent way to generate the hash without using the
-javascript function used in this package.  There are working Python and Perl solutions
-[here](http://unix.stackexchange.com/questions/52108/how-to-create-sha512-password-hashes-on-command-line)...
-they all kind of suck.
+So, to begin with, when you begin to secure your database, you will
+want to delete the old password database.
+
+    rm passwords.json
+
+To add a user:
+
+    node caysrvuser.js <username> <password> <role>
+
+where `role` must be one of the roles in `config.js`.
+
+Removing a user is simply a matter of removing their entry in the JSON file.
 
 ### Let's Encrypt
 

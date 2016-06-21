@@ -4,13 +4,39 @@ var config      = require('./config')
 
 const ALL_TAG = '__ALL__';
 const QUERY_PATH = '/api/v1/query/gremlin';
+// This GremlinJS script will query the entire database AND return it
+// in a format that D3's force layout can understand.
+// BEWARE: New-lines are lost when writing strings like this so remember, at least,
+// to use old C-style comments only, as well as statement-ending semi-colons.
+const FETCH_GRAPH =
+  "var verts = g.V().ToArray(); \
+    var verts = verts.map(function(o) { return { 'name' : o } }); \
+    var edges = []; \
+    var vertIdxMap = {}; \
+    for (var i=0; i<verts.length; i++) { \
+      vertIdxMap[verts[i].name] = i; \
+    } \
+    for (var i=0; i<verts.length; i++) { \
+      var vert = verts[i];  \
+      /* If there are no outgoing edges then result will be null. */ \
+      var new_edges = []; \
+      g.V(vert.name).Out(null,'pred') \
+        .Map(function(o) {  \
+          new_edges.push( { 'source' : i, 'target' : vertIdxMap[o.id], 'pred' : o.pred } )  \
+        }); \
+      if (new_edges) { \
+        edges = edges.concat(new_edges);  \
+      } \
+    } \
+    g.Emit({ 'nodes' : verts, 'links' : edges })";
 
 module.exports = {
   'unauth' :
     function(req, res) {
       // USER TODO: Fill in with your desired unauthorized access behavior.
 
-      // If the request is to '/viz' then show my graph visualization
+      // If the request is to '/viz' then show my graph visualization.
+      // The user hasn't had the opportunity to log in yet.
       // (I haven't been able to get the Cayley visualizations to work).
       if (req.url === '/viz') {
         this.auth(req, res);
@@ -80,6 +106,7 @@ module.exports = {
       req.body = query;
       req.headers['content-type'] = 'text/plain';
       console.log(query);
+      req.decoded.role = "admin";
       this.auth(req, res);
     },
 
@@ -91,6 +118,20 @@ module.exports = {
       // (I haven't been able to get the Cayley visualizations to work).
       if (req.url === '/viz') {
         res.sendFile('index.html', { root: __dirname });
+        return;
+      }
+
+      if (req.url === '/viz/graph') {
+        req.headers['content-type'] = 'text/plain';
+        req.body = FETCH_GRAPH;
+        req.url = QUERY_PATH;
+        req.decoded.role = 'admin';
+      }
+
+      // Anyone not 'admin' (for example, 'empl's) cannot use features beyond
+      // this point.
+      if (req.decoded.role !== 'admin') {
+        res.status(404).send('Insufficient permission for request.');
         return;
       }
 
