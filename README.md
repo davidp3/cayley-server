@@ -53,7 +53,16 @@ If you wish to expose `cayley-docker` as well as `cayley-server`, forward the po
 ```sh
 CAYLEY_CID=`docker run -v data_volume:/data -p 64321:64321 -d docker.io/davidp3/cayley:0.4.1-trunk`
 ```
-2. Launch cayley-server.  The only complex part of this instruction is the
+2. Launch cayley-server.  This can be done with or without Docker.
+
+#### Without Docker
+
+Simply run `node server`.  If using `nodemon` for server development/debugging,
+run `nodemon server`.
+
+#### With Docker
+
+The only complex part of this step is the
 setting of `CAYLEY_INT_SERVER_IP`, which is done differently for Mac/Windows,
 which use `docker-machine`, and Linux, which does not.
 <br>
@@ -108,7 +117,7 @@ want to delete the old password database.
 
 To add a user:
 
-    node caysrvuser.js <username> <password> <role>
+    node caysrvuser <username> <password> <role>
 
 where `role` must be one of the roles in `config.js`.
 

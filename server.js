@@ -5,6 +5,7 @@ var bcrypt      = require('bcrypt')
 var bodyParser  = require('body-parser');
 var morgan      = require('morgan');
 var jwt         = require('jsonwebtoken');
+var fs         = require('fs');
 var config      = require('./config');
 var handlers    = require('./handlers');
 
@@ -50,44 +51,51 @@ app.post('/login', function(req, res) {
   var username = req.body.name;
   var password = req.body.password;
 
-  var passwords = require(config.passwordFile);
-  if (!passwords) {
-    res.json({ success: false, message: 'Server configuration issue #1.'});   // unable to locate password file
-    return;
-  }
-
-  if (!passwords.hasOwnProperty(username)) {
-    res.json({ success: false, message: 'Authentication failed. User not found.' });
-    return;
-  };
-
-  var storedPassword = passwords[username];
-
-  var asyncDecode = function(rolesTodo) {
-    if (rolesTodo.length == 0) {
-      res.json({ success: false, message: 'Authentication failed. Bad password.' });
+  fs.readFile(config.passwordFile, 'utf8', function (err, data) {
+    if (!data) {
+      res.json({ success: false, message: 'Server configuration issue #1.'});   // unable to locate password file
       return;
     }
 
-    var role = rolesTodo.pop();
-    bcrypt.compare(password+role, storedPassword, function(err, matched) {
-      if (!matched) {
-        asyncDecode(rolesTodo);
+    var passwords = JSON.parse(data);
+    if (!passwords) {
+      res.json({ success: false, message: 'Server configuration issue #2.'});   // unable to parse password file
+      return;
+    }
+
+    if (!passwords.hasOwnProperty(username)) {
+      res.json({ success: false, message: 'Authentication failed. User not found.' });
+      return;
+    };
+
+    var storedPassword = passwords[username];
+
+    var asyncDecode = function(rolesTodo) {
+      if (rolesTodo.length == 0) {
+        res.json({ success: false, message: 'Authentication failed. Bad password.' });
         return;
       }
 
-      var token = jwt.sign({ name: username, password: password, role: role },
-        app.get('secret'), { expiresIn: config.expiresIn });
+      var role = rolesTodo.pop();
+      bcrypt.compare(password+role, storedPassword, function(err, matched) {
+        if (!matched) {
+          asyncDecode(rolesTodo);
+          return;
+        }
 
-      res.json({
-        success: true,
-        message: '',
-        token: token
-      });
-    })
-  };
+        var token = jwt.sign({ name: username, password: password, role: role },
+          app.get('secret'), { expiresIn: config.expiresIn });
 
-  asyncDecode(Array.from(config.roles));    // it mutates the array so use a copy
+        res.json({
+          success: true,
+          message: '',
+          token: token
+        });
+      })
+    };
+
+    asyncDecode(Array.from(config.roles));    // it mutates the array so use a copy
+  });
 });
 
 // Verify the token

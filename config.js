@@ -22,9 +22,8 @@ module.exports = {
   // Duration for which the login token is valid.
   'expiresIn'       : process.env.CAYLEY_AUTH_EXPIRES_IN || '24h',
 
-  // Name of password file.  Suffix is optional if .js or .json.
-  // The ./ if specifying a relative path is not.
-  'passwordFile'    : process.env.PASSWORD_FILE || './passwords',
+  // Name of password file.
+  'passwordFile'    : process.env.PASSWORD_FILE || './passwords.json',
 
   // List of roles understood by `auth` function.
   'roles'           : [ 'admin', 'empl' ]
