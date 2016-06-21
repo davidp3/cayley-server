@@ -115,7 +115,14 @@ want to delete the old password database.
 
     rm passwords.json
 
-To add a user:
+If using Docker, you will probably want to move the password file to
+the persistent volume that the database is stored on by adding this to the
+`docker run` command:
+
+     -e PASSWORD_FILE='/data/passwords.json'
+
+To add a user, run this command on the server or in a shell on a docker
+image with the password file's volume mounted :
 
     node caysrvuser <username> <password> <role>
 
