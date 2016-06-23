@@ -246,13 +246,19 @@ body {
         <div class="headertop">
           <form class="pform">
             <table>
-            <tr><td>Username:</td><td><input type="text" maxlength="32" id="username"/></td></tr>
-            <tr><td>Password:</td><td><input type="password" maxlength="32" id="pass"/><p></td></tr>
+            <tr>
+              <td>Username:</td>
+              <td><input type="text" maxlength="32" id="username"/></td>
+            </tr>
+            <tr>
+              <td>Password:</td>
+              <td><input type="password" maxlength="32" id="pass"/><p></td>
+            </tr>
             </table>
-            <input class="button" type="button" value="Login"
+            <input id="loginbutton" class="button" type="button" value="Login"
                    onclick="if(login && !logging_in) { login(); }
-                            else if (!logging_in) { waitForLogin(); }"
-                   /><p style="margin: 0">
+                            else if (!logging_in) { waitForLogin(); }"/>
+            <p style="margin: 0">
             <div><span id="login_message"/></div>
           </form>
           <ul class="message">
@@ -275,6 +281,14 @@ body {
      The license is MIT. -->
     <script type="text/javascript" src="d3-tip.js"></script>
     <script>
+
+    document.getElementById("pass")
+      .addEventListener("keyup", function(event) {
+        if (event.keyCode == 13) {
+          event.preventDefault();
+          document.getElementById("loginbutton").click();
+        }
+      });
 
     const nLabelsPerRow = 4;
     const QUERY_PATH = '/viz/graph';
