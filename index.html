@@ -18,20 +18,21 @@ html, body {
 
 body {
   font: 400 14px/21px "Open Sans", "Helvetica Neue", Helvetica, Arial, sans-serif;
-  background-color:#F8F8FF
+  background-color: rgba(238, 238, 238, 1.0);
 }
 
 .header {
   margin: 16px 16px 4px 16px;
-  background: rgba(170, 170, 200, 0.85);
+  background: rgba(164, 164, 196, 0.5);
   padding: 8px;
   position: fixed;
-  left: 24px;
-  right: 24px;
-  top: 24px;
-  bottom: 24px;
+  left: 96px;
+  right: 96px;
+  top: 48px;
+  bottom: 48px;
   display: flex;
-  border-radius: 16px;
+  border:solid 2px #888;
+  border-radius: 4px;
   font-size: 18px;
   transition: max-height 1s ease-in, max-width 1s ease-in;
   overflow: hidden;
@@ -40,22 +41,27 @@ body {
 .formandmessage {
   position: relative;
   margin: 40px 8px 20px 8px;
+  background: rgba(238, 238, 238, 1.0);
   left: 0;
   top: 0;
   right: 0;
   bottom: 0;
-  min-width: calc(100vw - 156px);
+  min-width: calc(100vw - 300px);
   height: calc(100% - 80px);
   overflow: auto;
   padding: 12px;
-  border:solid 2px #008;
-  border-radius: 8px;
+/*  background: rgba(220, 220, 220, 0.8); */
+  border:solid 2px #888;
+  border-radius: 4px;
   color: #313
 }
 
 .headertop {
   display: flex;
   flex-direction: row;
+  background: rgba(200, 200, 220, 1.0);
+  border:solid 2px #888;
+  border-radius: 4px;
 }
 
 .collapse {
@@ -97,14 +103,25 @@ body {
 
 .pform input {
   font-size: 16px;
+  border:solid 1px #88F;
+  border-radius: 2px;
+}
+
+.pform .button {
+  color: #FFF;
+  background: rgba(59, 153, 252, 1.0);
+  border:solid 1px #444;
+  border-radius: 2px;
+  padding: 4px;
 }
 
 #login_message {
   color: #F11;
+  padding: 4px 0 8px 0;
 }
 
 .message {
-  margin-top: 0;
+  margin-top: 8px;
   flex: 1;
   padding: 0 0 0 0px;
   line-height: 28px;
@@ -117,9 +134,9 @@ body {
 }
 
 .edgelabel {
-  border:solid 1px #008;
+  border:solid 1px #888;
   border-radius: 4px;
-  background: rgba(180, 180, 220, 0.8);
+  background: rgba(200, 200, 220, 1.0);
   padding:16px;
 }
 
@@ -235,8 +252,8 @@ body {
             <input class="button" type="button" value="Login"
                    onclick="if(login && !logging_in) { login(); }
                             else if (!logging_in) { waitForLogin(); }"
-                   /><p>
-            <span id="login_message"/>
+                   /><p style="margin: 0">
+            <div><span id="login_message"/></div>
           </form>
           <ul class="message">
             <li>Mouseover an edge to see the relationship type.</li>
@@ -259,34 +276,43 @@ body {
     <script type="text/javascript" src="d3-tip.js"></script>
     <script>
 
-    const nLabelsPerRow = 5;
+    const nLabelsPerRow = 4;
     const QUERY_PATH = '/viz/graph';
 
     var token = '';
 
     login = function() {
       logging_in = true;
+      var loginmsg = document.getElementById('login_message');
       var username = document.getElementById('username').value;
       var pass = document.getElementById('pass').value;
+      var tableElt = document.getElementById("edgelist");
+      // delete any old list items
+      for (var i=tableElt.childNodes.length-1; i>=0; i--) {
+        tableElt.removeChild(tableElt.childNodes[i]);
+      }
       token = '';
       d3.select(".graphcontainer").remove();
       d3.json(location.protocol + '//' + window.location.host + '/')
         .header("Content-Type", "application/json")
         .post(JSON.stringify({ 'name' : username, 'password' : pass }), function (err, data) {
           if (data && data.success) {
+            loginmsg.textContent = "";
+            loginmsg.style.display = "none";
             document.getElementById('login_message').textContent = '';
             console.log("Successful login.");
+            document.getElementById('pass').value = '';
             token = data.token;
             draw();
             logging_in = false;
           } else if (data) {
-            document.getElementById('login_message').textContent =
-                "Login error: " + data.message;
+            loginmsg.textContent = "Login error: " + data.message;
+            loginmsg.style.display = "block";
             console.log("Failed to fetch auth token.  Error: " + data.message);
             logging_in = false;
           } else {
-            document.getElementById('login_message').textContent =
-                "Login Failed.";
+            loginmsg.textContent = "Login Failed.";
+            loginmsg.style.display = "block";
             console.log("Failed to fetch auth token.");
             logging_in = false;
           }
@@ -505,11 +531,6 @@ body {
         return l1.localeCompare(l2);
       });
       var tableElt = document.getElementById("edgelist");
-      // delete any old list items
-      for (var i=tableElt.childNodes.length-1; i>=0; i--) {
-        tableElt.removeChild(tableElt.childNodes[i]);
-      }
-
       // Add an "<All Edges>" box
       var trElt = document.createElement('tr');
       tableElt.appendChild(trElt);
