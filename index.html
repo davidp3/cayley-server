@@ -1,6 +1,9 @@
 <!DOCTYPE html>
 <meta charset="utf-8">
 
+
+<script src="https://use.fontawesome.com/b15cbb268c.js"></script>
+
 <style>
 
 html, body {
@@ -66,8 +69,9 @@ body {
 
 .collapse {
   position: sticky;
-  left: 8px;
-  top: 8px;
+  background: rgba(0,0,0, 0.0);
+  left: 4px;
+  top: 4px;
   width: 16px;
   height: 16px;
 }
@@ -76,20 +80,7 @@ body {
   position: absolute;
   padding: 0;
   border-width: 0;
-  width: 16px;
-  height: 16px;
-  left: 0;
-  right: 0;
-  top: 0;
-  bottom: 0;
-}
-
-.collapseimg {
-  position: absolute;
-  left: 0;
-  right: 0;
-  top: 0;
-  bottom: 0;
+  background: rgba(0,0,0, 0.0);
 }
 
 .pform {
@@ -236,10 +227,10 @@ body {
     <div class="header" id="header">
       <div class="collapse">
         <button class="collapsebtn" id="minbtn">
-          <image class="collapseimg" src="min.ico" width=16 height=16 />
+          <i class="fa fa-minus-circle fa-2x" aria-hidden="true"></i>
         </button>
         <button class="collapsebtn" style="visibility: hidden;" id="maxbtn">
-          <image class="collapseimg" src="max.ico" width=16 height=16 />
+          <i class="fa fa-plus-circle fa-2x" aria-hidden="true"></i>
         </button>
       </div>
       <div class="formandmessage">
